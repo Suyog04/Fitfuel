@@ -1,0 +1,6 @@
+@Fitfuel_HostAddress = http://localhost:5110
+
+GET {{Fitfuel_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
