@@ -1,0 +1,40 @@
+# === .NET Build Files ===
+bin/
+obj/
+out/
+*.dll
+*.exe
+
+# === Rider IDE Files ===
+.idea/
+*.sln.iml
+
+# === User/Temp Files ===
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# === macOS System Files ===
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# === Logs ===
+*.log
+
+# === Configuration Files (DO NOT COMMIT SECRETS) ===
+appsettings.Development.json
+appsettings.Local.json
+.env
+secrets.json
+
+# === Entity Framework Cache ===
+# Uncomment below if you want to exclude EF Migrations history (optional)
+# Migrations/
+
+# === HTTP Client Scratch Files ===
+*.http
+
+# === Docker Ignore (Optional) ===
+*.tar
