@@ -30,7 +30,6 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// ✅ Use CORS before anything else
 app.UseCors("AllowAll");
 
 app.UseAuthorization();
