@@ -38,3 +38,5 @@ secrets.json
 
 # === Docker Ignore (Optional) ===
 *.tar
+
+.idea/
