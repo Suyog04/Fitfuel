@@ -109,8 +109,7 @@ namespace FitFuel.Controllers
 
             return Ok(summary);
         }
-
-        // Add GUID constraint here to avoid route conflicts
+        
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -121,7 +120,7 @@ namespace FitFuel.Controllers
 
             return Ok(entry.ToResponse());
         }
-
+        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
