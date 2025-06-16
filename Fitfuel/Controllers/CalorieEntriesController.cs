@@ -22,34 +22,25 @@ namespace FitFuel.Controllers
             _context = context;
             _nutrition = nutrition;
         }
-
-        // Added test-nutrition GET endpoint to test Nutritionix API
-        [HttpGet("test-nutrition")]
-        public async Task<IActionResult> TestNutritionApi(
-            [FromQuery] string foodItem, 
-            [FromQuery] double weightInGrams)
+        
+        [HttpGet("check-nutrition")]
+        public async Task<IActionResult> CheckNutritionApi()
         {
-            if (string.IsNullOrWhiteSpace(foodItem) || weightInGrams <= 0)
-                return BadRequest("Valid foodItem and weightInGrams are required");
+            var testFood = "1 large banana";
+            var testWeight = 120.0;
 
-            try
+            var result = await _nutrition.GetNutritionDataAsync(testFood, testWeight);
+
+            if (result == null)
             {
-                var nutritionData = await _nutrition.GetNutritionDataAsync(foodItem, weightInGrams);
-            
-                if (nutritionData == null)
-                    return NotFound("Nutrition data not available");
-            
-                return Ok(new {
-                    Message = "Nutrition data retrieved",
-                    Food = foodItem,
-                    Weight = weightInGrams,
-                    Data = nutritionData
-                });
+                return StatusCode(502, "Nutrition API is not responding or returned no data.");
             }
-            catch (Exception ex)
+
+            return Ok(new
             {
-                return StatusCode(500, $"Nutrition API error: {ex.Message}");
-            }
+                status = "Nutrition API working",
+                sample = result
+            });
         }
 
         [HttpPost]
