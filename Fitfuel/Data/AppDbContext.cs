@@ -1,4 +1,3 @@
-// Data/AppDbContext.cs
 using FitFuel.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,21 +12,21 @@ namespace FitFuel.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure primary keys
+            // It configure primary keys
             modelBuilder.Entity<User>()
                 .HasKey(u => u.UserId);
                 
             modelBuilder.Entity<CalorieEntry>()
                 .HasKey(e => e.EntryId);
             
-            // Configure relationships
+            // It configure relationships
             modelBuilder.Entity<CalorieEntry>()
                 .HasOne(e => e.User)
                 .WithMany(u => u.CalorieEntries)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             
-            // Configure enum conversion to store as string
+            // It configure enum conversion to store as string
             modelBuilder.Entity<CalorieEntry>()
                 .Property(e => e.Meal)
                 .HasConversion<string>();
