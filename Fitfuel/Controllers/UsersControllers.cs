@@ -69,7 +69,7 @@ public class UsersController : ControllerBase
                 CreatedAt = u.CreatedAt
             })
             .ToListAsync();
-        
+
         return Ok(users);
     }
 
@@ -79,13 +79,18 @@ public class UsersController : ControllerBase
     {
         var user = await _context.Users
             .Include(u => u.CalorieEntries)
-            .Select(u => new UserResponse
-            {
-                UserId = u.UserId,
-                Name = u.Name,
-                Email = u.Email,
-                CreatedAt = u.CreatedAt,
-                CalorieEntries = u.CalorieEntries.Select(e => new CalorieEntryResponse
+            .FirstOrDefaultAsync(u => u.UserId == id);
+
+        if (user == null) return NotFound();
+
+        var response = new UserResponse
+        {
+            UserId = user.UserId,
+            Name = user.Name,
+            Email = user.Email,
+            CreatedAt = user.CreatedAt,
+            CalorieEntries = user.CalorieEntries
+                .Select(e => new CalorieEntryResponse
                 {
                     EntryId = e.EntryId,
                     FoodItem = e.FoodItem,
@@ -97,48 +102,45 @@ public class UsersController : ControllerBase
                     Carbs = e.Carbs,
                     Fats = e.Fats,
                     Fiber = e.Fiber
-                }).ToList()
-            })
-            .FirstOrDefaultAsync(u => u.UserId == id);
+                })
+                .ToList()
+        };
 
-        if (user == null) return NotFound();
-
-        return Ok(user);
+        return Ok(response);
     }
-}
 
 // DTO Classes
-public class UserCreateRequest
-{
-    [Required, StringLength(100, MinimumLength = 2)]
-    public string Name { get; set; }
+    public class UserCreateRequest
+    {
+        [Required, StringLength(100, MinimumLength = 2)]
+        public string Name { get; set; }
 
-    [Required, EmailAddress]
-    public string Email { get; set; }
-    
-    [Required, StringLength(100, MinimumLength = 6)]
-    public string Password { get; set; }
-}
+        [Required, EmailAddress] public string Email { get; set; }
 
-public class UserResponse
-{
-    public Guid UserId { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public List<CalorieEntryResponse> CalorieEntries { get; set; }
-}
+        [Required, StringLength(100, MinimumLength = 6)]
+        public string Password { get; set; }
+    }
 
-public class CalorieEntryResponse
-{
-    public Guid EntryId { get; set; }
-    public string FoodItem { get; set; }
-    public double WeightInGrams { get; set; }
-    public MealType Meal { get; set; }
-    public DateTime EntryTime { get; set; }
-    public double Calories { get; set; }
-    public double Protein { get; set; }
-    public double Carbs { get; set; }
-    public double Fats { get; set; }
-    public double Fiber { get; set; }
+    public class UserResponse
+    {
+        public Guid UserId { get; set; }
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public List<CalorieEntryResponse> CalorieEntries { get; set; }
+    }
+
+    public class CalorieEntryResponse
+    {
+        public Guid EntryId { get; set; }
+        public string FoodItem { get; set; }
+        public double WeightInGrams { get; set; }
+        public MealType Meal { get; set; }
+        public DateTime EntryTime { get; set; }
+        public double Calories { get; set; }
+        public double Protein { get; set; }
+        public double Carbs { get; set; }
+        public double Fats { get; set; }
+        public double Fiber { get; set; }
+    }
 }

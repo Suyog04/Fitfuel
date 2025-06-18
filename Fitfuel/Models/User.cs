@@ -8,5 +8,6 @@ public class User
     public string Email { get; set; }
     public string PasswordHash { get; set; } // Add this
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public virtual ICollection<CalorieEntry> CalorieEntries { get; set; }
+    public virtual ICollection<CalorieEntry> CalorieEntries { get; set; } = new List<CalorieEntry>();
+
 }
