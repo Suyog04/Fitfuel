@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FitFuel.Utilities;
+using System.Collections.Generic;
 
 namespace FitFuel.Controllers
 {
@@ -22,7 +23,7 @@ namespace FitFuel.Controllers
             _context = context;
             _nutrition = nutrition;
         }
-        
+
         [HttpGet("check-nutrition")]
         public async Task<IActionResult> CheckNutritionApi()
         {
@@ -89,11 +90,28 @@ namespace FitFuel.Controllers
             var startDate = targetDate;
             var endDate = targetDate.AddDays(1);
 
-            var entries = await _context.CalorieEntries
-                .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
+            // ✅ Get all entries for user
+            var allEntries = await _context.CalorieEntries
+                .Where(e => e.UserId == userId)
                 .ToListAsync();
 
-            var summary = entries
+            if (allEntries.Count == 0)
+            {
+                return Ok(new { message = "No calorie entries found for this user." });
+            }
+
+            // ✅ Filter by date
+            var filtered = allEntries
+                .Where(e => e.EntryTime >= startDate && e.EntryTime < endDate)
+                .ToList();
+
+            if (filtered.Count == 0)
+            {
+                return Ok(new { message = "No entries found for this date." });
+            }
+
+            // ✅ Group by meal and return summary
+            var summary = filtered
                 .GroupBy(e => e.Meal)
                 .Select(g => new MealSummary
                 {
@@ -105,11 +123,12 @@ namespace FitFuel.Controllers
                     TotalFiber = g.Sum(e => e.Fiber),
                     Entries = g.Select(e => e.ToResponse()).ToList()
                 })
-                .OrderBy(s => s.MealType);
+                .OrderBy(s => s.MealType)
+                .ToList();
 
             return Ok(summary);
         }
-        
+
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -120,7 +139,7 @@ namespace FitFuel.Controllers
 
             return Ok(entry.ToResponse());
         }
-        
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
