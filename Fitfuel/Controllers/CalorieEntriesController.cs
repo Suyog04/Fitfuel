@@ -3,11 +3,10 @@ using FitFuel.Models;
 using FitFuel.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using FitFuel.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using FitFuel.Utilities;
-using System.Collections.Generic;
 
 namespace FitFuel.Controllers
 {
@@ -24,13 +23,16 @@ namespace FitFuel.Controllers
             _nutrition = nutrition;
         }
 
+        // ✅ CHECK NUTRITION INFO BEFORE LOGGING
         [HttpGet("check-nutrition")]
-        public async Task<IActionResult> CheckNutritionApi()
+        public async Task<IActionResult> CheckNutritionApi([FromQuery] string foodItem, [FromQuery] double weight)
         {
-            var testFood = "1 large banana";
-            var testWeight = 120.0;
+            if (string.IsNullOrWhiteSpace(foodItem) || weight <= 0)
+            {
+                return BadRequest("Please provide a valid food item and a weight greater than 0.");
+            }
 
-            var result = await _nutrition.GetNutritionDataAsync(testFood, testWeight);
+            var result = await _nutrition.GetNutritionDataAsync(foodItem, weight);
 
             if (result == null)
             {
@@ -39,11 +41,14 @@ namespace FitFuel.Controllers
 
             return Ok(new
             {
-                status = "Nutrition API working",
-                sample = result
+                status = "Nutrition data retrieved successfully",
+                food = foodItem,
+                weight = weight,
+                nutrition = result
             });
         }
 
+        // ✅ CREATE ENTRY
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CalorieEntryRequest request)
         {
@@ -82,36 +87,22 @@ namespace FitFuel.Controllers
             return CreatedAtAction(nameof(GetById), new { id = newEntry.EntryId }, newEntry.ToResponse());
         }
 
+        // ✅ DAILY SUMMARY
         [HttpGet("summary/{userId}")]
         public async Task<IActionResult> GetNutritionSummary(Guid userId, [FromQuery] DateTime? date = null)
         {
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
-
             var startDate = targetDate;
             var endDate = targetDate.AddDays(1);
 
-            // ✅ Get all entries for user
-            var allEntries = await _context.CalorieEntries
-                .Where(e => e.UserId == userId)
+            var entries = await _context.CalorieEntries
+                .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
                 .ToListAsync();
 
-            if (allEntries.Count == 0)
-            {
-                return Ok(new { message = "No calorie entries found for this user." });
-            }
+            if (!entries.Any())
+                return NotFound(new { message = "No calorie entries found for this user." });
 
-            // ✅ Filter by date
-            var filtered = allEntries
-                .Where(e => e.EntryTime >= startDate && e.EntryTime < endDate)
-                .ToList();
-
-            if (filtered.Count == 0)
-            {
-                return Ok(new { message = "No entries found for this date." });
-            }
-
-            // ✅ Group by meal and return summary
-            var summary = filtered
+            var summary = entries
                 .GroupBy(e => e.Meal)
                 .Select(g => new MealSummary
                 {
@@ -129,17 +120,16 @@ namespace FitFuel.Controllers
             return Ok(summary);
         }
 
+        // ✅ GET BY ID
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var entry = await _context.CalorieEntries
-                .FirstOrDefaultAsync(e => e.EntryId == id);
-
+            var entry = await _context.CalorieEntries.FirstOrDefaultAsync(e => e.EntryId == id);
             if (entry == null) return NotFound();
-
             return Ok(entry.ToResponse());
         }
 
+        // ✅ GET ALL ENTRIES
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
