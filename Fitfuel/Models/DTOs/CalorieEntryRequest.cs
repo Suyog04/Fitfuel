@@ -1,7 +1,8 @@
+using System;
 using System.ComponentModel.DataAnnotations;
-using FitFuel.Models;
+using FitFuel.Models;  // Assuming MealType is declared here
 
-namespace FitFuel.Models
+namespace FitFuel.Models.DTOs
 {
     public class CalorieEntryRequest
     {

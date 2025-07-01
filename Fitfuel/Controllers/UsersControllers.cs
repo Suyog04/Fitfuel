@@ -23,37 +23,55 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] UserCreateRequest request)
     {
         if (!ModelState.IsValid)
-        {
             return BadRequest(ModelState);
-        }
 
-        // Check if email already exists
         if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-        {
             return Conflict("Email address is already registered");
-        }
 
-        // Hash password with secure work factor
         var newUser = new User
         {
             UserId = Guid.NewGuid(),
             Name = request.Name,
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            HeightCm = request.HeightCm,
+            WeightKg = request.WeightKg,
+            DateOfBirth = request.DateOfBirth
         };
 
         _context.Users.Add(newUser);
         await _context.SaveChangesAsync();
 
-        // Return response without password hash
         return CreatedAtAction(nameof(GetById), new { id = newUser.UserId }, new UserResponse
         {
             UserId = newUser.UserId,
             Name = newUser.Name,
             Email = newUser.Email,
-            CreatedAt = newUser.CreatedAt
+            CreatedAt = newUser.CreatedAt,
+            HeightCm = newUser.HeightCm,
+            WeightKg = newUser.WeightKg,
+            Age = CalculateAge(newUser.DateOfBirth),
+            CalorieEntries = new()
         });
+    }
+
+    // PUT: api/Users/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UserUpdateRequest request)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null)
+            return NotFound("User not found");
+
+        user.Name = request.Name;
+        user.HeightCm = request.HeightCm;
+        user.WeightKg = request.WeightKg;
+        user.DateOfBirth = request.DateOfBirth;
+
+        await _context.SaveChangesAsync();
+
+        return Ok("User updated successfully");
     }
 
     // GET: api/Users
@@ -66,7 +84,11 @@ public class UsersController : ControllerBase
                 UserId = u.UserId,
                 Name = u.Name,
                 Email = u.Email,
-                CreatedAt = u.CreatedAt
+                CreatedAt = u.CreatedAt,
+                HeightCm = u.HeightCm,
+                WeightKg = u.WeightKg,
+                Age = CalculateAge(u.DateOfBirth),
+                CalorieEntries = new()
             })
             .ToListAsync();
 
@@ -89,6 +111,9 @@ public class UsersController : ControllerBase
             Name = user.Name,
             Email = user.Email,
             CreatedAt = user.CreatedAt,
+            HeightCm = user.HeightCm,
+            WeightKg = user.WeightKg,
+            Age = CalculateAge(user.DateOfBirth),
             CalorieEntries = user.CalorieEntries
                 .Select(e => new CalorieEntryResponse
                 {
@@ -109,16 +134,50 @@ public class UsersController : ControllerBase
         return Ok(response);
     }
 
-// DTO Classes
+    private int CalculateAge(DateTime dob)
+    {
+        var today = DateTime.UtcNow;
+        var age = today.Year - dob.Year;
+        if (dob.Date > today.AddYears(-age)) age--;
+        return age;
+    }
+
+    // DTOs
+
     public class UserCreateRequest
     {
         [Required, StringLength(100, MinimumLength = 2)]
         public string Name { get; set; }
 
-        [Required, EmailAddress] public string Email { get; set; }
+        [Required, EmailAddress]
+        public string Email { get; set; }
 
         [Required, StringLength(100, MinimumLength = 6)]
         public string Password { get; set; }
+
+        [Required, Range(50, 300)]
+        public double HeightCm { get; set; }
+
+        [Required, Range(20, 300)]
+        public double WeightKg { get; set; }
+
+        [Required]
+        public DateTime DateOfBirth { get; set; }
+    }
+
+    public class UserUpdateRequest
+    {
+        [Required, StringLength(100, MinimumLength = 2)]
+        public string Name { get; set; }
+
+        [Required, Range(50, 300)]
+        public double HeightCm { get; set; }
+
+        [Required, Range(20, 300)]
+        public double WeightKg { get; set; }
+
+        [Required]
+        public DateTime DateOfBirth { get; set; }
     }
 
     public class UserResponse
@@ -127,6 +186,9 @@ public class UsersController : ControllerBase
         public string Name { get; set; }
         public string Email { get; set; }
         public DateTime CreatedAt { get; set; }
+        public double HeightCm { get; set; }
+        public double WeightKg { get; set; }
+        public int Age { get; set; }
         public List<CalorieEntryResponse> CalorieEntries { get; set; }
     }
 

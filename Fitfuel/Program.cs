@@ -24,6 +24,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<NutritionService>();
+builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
+
 
 var app = builder.Build();
 

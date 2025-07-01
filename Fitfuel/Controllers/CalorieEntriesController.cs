@@ -7,6 +7,7 @@ using FitFuel.Utilities;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using FitFuel.Models.DTOs;
 
 namespace FitFuel.Controllers
 {

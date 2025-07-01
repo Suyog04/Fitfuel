@@ -1,6 +1,4 @@
 using FitFuel.Models;
-using System;
-using System.Collections.Generic;
 
 public class User
 {
@@ -12,7 +10,13 @@ public class User
 
     public double HeightCm { get; set; }
     public double WeightKg { get; set; }
-    public DateTime DateOfBirth { get; set; }  // NEW
+    public DateTime DateOfBirth { get; set; }
+
+    public bool IsEmailVerified { get; set; } = false;
+    public string? EmailVerificationToken { get; set; }
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
+
 
     public virtual ICollection<CalorieEntry> CalorieEntries { get; set; } = new List<CalorieEntry>();
 }
