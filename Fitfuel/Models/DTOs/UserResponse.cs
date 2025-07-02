@@ -1,20 +1,18 @@
-using System;
-using System.Collections.Generic;
+using FitFuel.Models;
 
-namespace FitFuel.Models.DTOs
+public class UserResponse
 {
-    public class UserResponse
-    {
-        public Guid UserId { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public DateTime CreatedAt { get; set; }
+    public Guid UserId { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-        public double HeightCm { get; set; }
-        public double WeightKg { get; set; }
+    public int? Age { get; set; }
+    public string? Gender { get; set; }
+    public double? HeightCm { get; set; }
+    public double? WeightKg { get; set; }
+    public double? TargetWeightKg { get; set; }
+    public string? Goal { get; set; }
 
-        public int Age { get; set; } // Dynamically calculated
-
-        public List<CalorieEntryResponse> CalorieEntries { get; set; } = new();
-    }
+    public List<CalorieEntryResponse> CalorieEntries { get; set; }
 }

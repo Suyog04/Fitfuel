@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using BCrypt.Net;
 using System.Threading.Tasks;
+using Fitfuel.Models.DTOs;
 using Microsoft.AspNetCore.Identity.Data;
 using FitFuel.Models.DTOs;
 using Microsoft.Extensions.Logging;
@@ -58,9 +59,6 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
             Email = request.Email,
             PasswordHash = hashedPassword,
             CreatedAt = DateTime.UtcNow,
-            HeightCm = request.HeightCm,
-            WeightKg = request.WeightKg,
-            DateOfBirth = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
             IsEmailVerified = false,
             EmailVerificationToken = Guid.NewGuid().ToString()
         };
@@ -147,7 +145,6 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
 
         await _emailSender.SendEmailAsync(user.Email, subject, plainTextContent, htmlContent);
 
-
         // ✅ Log after email send
         _logger.LogInformation("✅ Verification email send completed for {Email}", user.Email);
 
@@ -169,28 +166,103 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
 
 
     [HttpGet("verify-email")]
-    public async Task<IActionResult> VerifyEmail([FromQuery] string token)
-    {
-        if (string.IsNullOrEmpty(token))
-            return BadRequest("Invalid token");
+public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+{
+    if (string.IsNullOrEmpty(token))
+        return BadRequest("Invalid token");
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+    var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
 
-        if (user == null)
-            return NotFound("Invalid token or user not found");
+    if (user == null)
+        return NotFound("Invalid token or user not found");
 
-        if (user.IsEmailVerified)
-            return BadRequest("Email is already verified");
+    if (user.IsEmailVerified)
+        return BadRequest("Email is already verified");
 
-        user.IsEmailVerified = true;
-        user.EmailVerificationToken = null; // Optional: clear token after verification
+    user.IsEmailVerified = true;
+    user.EmailVerificationToken = null;
 
-        _context.Users.Update(user);
-        await _context.SaveChangesAsync();
+    _context.Users.Update(user);
+    await _context.SaveChangesAsync();
 
-        return Ok("Email successfully verified. You can now log in.");
+    var html = @"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <title>Email Verified | FitFuel</title>
+  <style>
+    body {
+      background-color: #f0f4f8;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
+    .card {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 400px;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    .checkmark {
+      font-size: 60px;
+      color: #2ecc71;
+      animation: popIn 0.3s ease-out;
+    }
+    h2 {
+      color: #2d3436;
+      margin-top: 20px;
+    }
+    p {
+      color: #636e72;
+      margin: 15px 0;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 25px;
+      padding: 12px 24px;
+      background-color: #22a6b3;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #1e90a0;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class='card'>
+    <div class='checkmark'>✔️</div>
+    <h2>Email Verified!</h2>
+    <p>Your email has been successfully verified. You can now log in to your FitFuel account.</p>
+    <a href='/login' class='btn'>Go to Login</a>
+  </div>
+</body>
+</html>";
 
+    return Content(html, "text/html");
+}
+
+
+    
+    
     // Login method, etc. (make sure to check IsEmailVerified on login)
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -226,6 +298,8 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
             Token = GenerateJwtToken(user) // optional
         });
     }
+    
+    
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
@@ -267,7 +341,6 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
 
         return Ok("Password has been reset successfully.");
     }
-    
     
     [HttpGet("test-send-email")]
     public async Task<IActionResult> TestSendEmail()

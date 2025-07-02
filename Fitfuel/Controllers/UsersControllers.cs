@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using FitFuel.Data;
 using FitFuel.Models;
 using BCrypt.Net;
-using System.ComponentModel.DataAnnotations;
+using Fitfuel.Models.DTOs;
 
 namespace FitFuel.Controllers;
 
@@ -33,11 +33,8 @@ public class UsersController : ControllerBase
             UserId = Guid.NewGuid(),
             Name = request.Name,
             Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, workFactor: 12),
-            CreatedAt = DateTime.UtcNow,
-            HeightCm = request.HeightCm,
-            WeightKg = request.WeightKg,
-            DateOfBirth = request.DateOfBirth
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12),
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.Users.Add(newUser);
@@ -49,30 +46,70 @@ public class UsersController : ControllerBase
             Name = newUser.Name,
             Email = newUser.Email,
             CreatedAt = newUser.CreatedAt,
+            Age = newUser.Age,
+            Gender = newUser.Gender,
             HeightCm = newUser.HeightCm,
             WeightKg = newUser.WeightKg,
-            Age = CalculateAge(newUser.DateOfBirth),
+            TargetWeightKg = newUser.TargetWeightKg,
+            Goal = newUser.Goal,
             CalorieEntries = new()
         });
     }
 
-    // PUT: api/Users/{id}
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UserUpdateRequest request)
+    // PUT: api/Users/{id}/complete-profile
+    [HttpPut("{id}/complete-profile")]
+    public async Task<IActionResult> CompleteProfile(Guid id, [FromBody] UserCompleteProfileRequest request)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
             return NotFound("User not found");
 
-        user.Name = request.Name;
+        user.Age = request.Age;
+        user.Gender = request.Gender;
         user.HeightCm = request.HeightCm;
         user.WeightKg = request.WeightKg;
-        user.DateOfBirth = request.DateOfBirth;
+        user.TargetWeightKg = request.TargetWeightKg;
+        user.Goal = request.Goal;
+
+        await _context.SaveChangesAsync();
+        return Ok("Profile updated successfully");
+    }
+    
+    // PATCH or PUT: api/Users/{id}/update-profile
+    [HttpPut("{id}/update-profile")]
+    public async Task<IActionResult> UpdateProfile(Guid id, [FromBody] UpdateProfileRequest request)
+    {
+        var user = await _context.Users.FindAsync(id);
+        if (user == null)
+            return NotFound("User not found");
+
+        // Update only provided fields (null checks)
+        if (!string.IsNullOrEmpty(request.Name))
+            user.Name = request.Name;
+
+        if (request.HeightCm.HasValue)
+            user.HeightCm = request.HeightCm.Value;
+
+        if (request.WeightKg.HasValue)
+            user.WeightKg = request.WeightKg.Value;
+
+        if (request.TargetWeightKg.HasValue)
+            user.TargetWeightKg = request.TargetWeightKg.Value;
+
+        if (!string.IsNullOrEmpty(request.Goal))
+            user.Goal = request.Goal;
+
+        if (!string.IsNullOrEmpty(request.Gender))
+            user.Gender = request.Gender;
+
+        if (request.Age.HasValue)
+            user.Age = request.Age.Value;
 
         await _context.SaveChangesAsync();
 
-        return Ok("User updated successfully");
+        return Ok("Profile updated successfully");
     }
+
 
     // GET: api/Users
     [HttpGet]
@@ -85,9 +122,12 @@ public class UsersController : ControllerBase
                 Name = u.Name,
                 Email = u.Email,
                 CreatedAt = u.CreatedAt,
+                Age = u.Age,
+                Gender = u.Gender,
                 HeightCm = u.HeightCm,
                 WeightKg = u.WeightKg,
-                Age = CalculateAge(u.DateOfBirth),
+                TargetWeightKg = u.TargetWeightKg,
+                Goal = u.Goal,
                 CalorieEntries = new()
             })
             .ToListAsync();
@@ -111,9 +151,12 @@ public class UsersController : ControllerBase
             Name = user.Name,
             Email = user.Email,
             CreatedAt = user.CreatedAt,
+            Age = user.Age,
+            Gender = user.Gender,
             HeightCm = user.HeightCm,
             WeightKg = user.WeightKg,
-            Age = CalculateAge(user.DateOfBirth),
+            TargetWeightKg = user.TargetWeightKg,
+            Goal = user.Goal,
             CalorieEntries = user.CalorieEntries
                 .Select(e => new CalorieEntryResponse
                 {
@@ -127,82 +170,9 @@ public class UsersController : ControllerBase
                     Carbs = e.Carbs,
                     Fats = e.Fats,
                     Fiber = e.Fiber
-                })
-                .ToList()
+                }).ToList()
         };
 
         return Ok(response);
-    }
-
-    private int CalculateAge(DateTime dob)
-    {
-        var today = DateTime.UtcNow;
-        var age = today.Year - dob.Year;
-        if (dob.Date > today.AddYears(-age)) age--;
-        return age;
-    }
-
-    // DTOs
-
-    public class UserCreateRequest
-    {
-        [Required, StringLength(100, MinimumLength = 2)]
-        public string Name { get; set; }
-
-        [Required, EmailAddress]
-        public string Email { get; set; }
-
-        [Required, StringLength(100, MinimumLength = 6)]
-        public string Password { get; set; }
-
-        [Required, Range(50, 300)]
-        public double HeightCm { get; set; }
-
-        [Required, Range(20, 300)]
-        public double WeightKg { get; set; }
-
-        [Required]
-        public DateTime DateOfBirth { get; set; }
-    }
-
-    public class UserUpdateRequest
-    {
-        [Required, StringLength(100, MinimumLength = 2)]
-        public string Name { get; set; }
-
-        [Required, Range(50, 300)]
-        public double HeightCm { get; set; }
-
-        [Required, Range(20, 300)]
-        public double WeightKg { get; set; }
-
-        [Required]
-        public DateTime DateOfBirth { get; set; }
-    }
-
-    public class UserResponse
-    {
-        public Guid UserId { get; set; }
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public double HeightCm { get; set; }
-        public double WeightKg { get; set; }
-        public int Age { get; set; }
-        public List<CalorieEntryResponse> CalorieEntries { get; set; }
-    }
-
-    public class CalorieEntryResponse
-    {
-        public Guid EntryId { get; set; }
-        public string FoodItem { get; set; }
-        public double WeightInGrams { get; set; }
-        public MealType Meal { get; set; }
-        public DateTime EntryTime { get; set; }
-        public double Calories { get; set; }
-        public double Protein { get; set; }
-        public double Carbs { get; set; }
-        public double Fats { get; set; }
-        public double Fiber { get; set; }
     }
 }
