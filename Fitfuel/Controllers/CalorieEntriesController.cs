@@ -94,8 +94,9 @@ namespace FitFuel.Controllers
             // Use UTC date or provided date truncated to date only
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
 
-            var startDate = targetDate;
-            var endDate = targetDate.AddDays(1);
+            // Convert to UTC kind explicitly
+            var startDate = DateTime.SpecifyKind(targetDate, DateTimeKind.Utc);
+            var endDate = DateTime.SpecifyKind(targetDate.AddDays(1), DateTimeKind.Utc);
 
             // Filter entries for the date range
             var entries = await _context.CalorieEntries
@@ -116,15 +117,16 @@ namespace FitFuel.Controllers
                     TotalCarbs = g.Sum(e => e.Carbs),
                     TotalFats = g.Sum(e => e.Fats),
                     TotalFiber = g.Sum(e => e.Fiber),
-                    Entries = g.OrderBy(e => e.EntryTime)  // Sort entries by timestamp within meal
+                    Entries = g.OrderBy(e => e.EntryTime)
                         .Select(e => e.ToResponse())
                         .ToList()
                 })
-                .OrderBy(s => Enum.Parse<MealType>(s.MealType))  // Sort summary by MealType enum order
+                .OrderBy(s => Enum.Parse<MealType>(s.MealType))
                 .ToList();
 
             return Ok(summary);
         }
+
 
 
         // ✅ GET BY ID
