@@ -1,6 +1,10 @@
 using FitFuel.Data;
 using FitFuel.Services;
 using Microsoft.EntityFrameworkCore;
+using DotNetEnv; 
+
+
+DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ✅ Add CORS policy here
+// this add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -24,8 +28,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<NutritionService>();
-builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
 
+// ✅ Register SendGrid email sender
+builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
 
 var app = builder.Build();
 
