@@ -88,38 +88,44 @@ namespace FitFuel.Controllers
             return CreatedAtAction(nameof(GetById), new { id = newEntry.EntryId }, newEntry.ToResponse());
         }
 
-        // ✅ DAILY SUMMARY
         [HttpGet("summary/{userId}")]
         public async Task<IActionResult> GetNutritionSummary(Guid userId, [FromQuery] DateTime? date = null)
         {
+            // Use UTC date or provided date truncated to date only
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+
             var startDate = targetDate;
             var endDate = targetDate.AddDays(1);
 
+            // Filter entries for the date range
             var entries = await _context.CalorieEntries
                 .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
                 .ToListAsync();
 
             if (!entries.Any())
-                return NotFound(new { message = "No calorie entries found for this user." });
+                return NotFound(new { message = $"No calorie entries found for user on {targetDate:yyyy-MM-dd}." });
 
+            // Group entries by meal type and calculate nutrition summary
             var summary = entries
                 .GroupBy(e => e.Meal)
                 .Select(g => new MealSummary
                 {
-                    MealType = g.Key.ToString(),
+                    MealType = Enum.GetName(typeof(MealType), g.Key) ?? g.Key.ToString(),
                     TotalCalories = g.Sum(e => e.Calories),
                     TotalProtein = g.Sum(e => e.Protein),
                     TotalCarbs = g.Sum(e => e.Carbs),
                     TotalFats = g.Sum(e => e.Fats),
                     TotalFiber = g.Sum(e => e.Fiber),
-                    Entries = g.Select(e => e.ToResponse()).ToList()
+                    Entries = g.OrderBy(e => e.EntryTime)  // Sort entries by timestamp within meal
+                        .Select(e => e.ToResponse())
+                        .ToList()
                 })
-                .OrderBy(s => s.MealType)
+                .OrderBy(s => Enum.Parse<MealType>(s.MealType))  // Sort summary by MealType enum order
                 .ToList();
 
             return Ok(summary);
         }
+
 
         // ✅ GET BY ID
         [HttpGet("{id:guid}")]
