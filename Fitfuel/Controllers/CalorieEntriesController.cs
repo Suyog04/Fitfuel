@@ -88,15 +88,16 @@ namespace FitFuel.Controllers
             return CreatedAtAction(nameof(GetById), new { id = newEntry.EntryId }, newEntry.ToResponse());
         }
 
+        // ✅ FIXED: ENSURE UTC KIND WHEN FILTERING DATE
         [HttpGet("summary/{userId}")]
         public async Task<IActionResult> GetNutritionSummary(Guid userId, [FromQuery] DateTime? date = null)
         {
-            // Use UTC date or provided date truncated to date only
-            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            // Use UTC date or provided date truncated to date only, then specify UTC kind
+            var rawDate = date?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = DateTime.SpecifyKind(rawDate, DateTimeKind.Utc);
 
-            // Convert to UTC kind explicitly
-            var startDate = DateTime.SpecifyKind(targetDate, DateTimeKind.Utc);
-            var endDate = DateTime.SpecifyKind(targetDate.AddDays(1), DateTimeKind.Utc);
+            var startDate = targetDate;
+            var endDate = targetDate.AddDays(1); // still UTC
 
             // Filter entries for the date range
             var entries = await _context.CalorieEntries
@@ -126,8 +127,6 @@ namespace FitFuel.Controllers
 
             return Ok(summary);
         }
-
-
 
         // ✅ GET BY ID
         [HttpGet("{id:guid}")]
