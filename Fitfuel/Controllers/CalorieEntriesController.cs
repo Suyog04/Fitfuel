@@ -147,5 +147,36 @@ namespace FitFuel.Controllers
 
             return Ok(entries);
         }
+        [HttpGet("summary/total/{userId}")]
+        public async Task<IActionResult> GetTotalSummary(Guid userId, [FromQuery] DateTime? date = null)
+        {
+            var rawDate = date?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = DateTime.SpecifyKind(rawDate, DateTimeKind.Utc);
+
+            var startDate = targetDate;
+            var endDate = targetDate.AddDays(1); // for full day range
+
+            var entries = await _context.CalorieEntries
+                .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
+                .ToListAsync();
+
+            if (!entries.Any())
+            {
+                return NotFound(new { message = $"No calorie entries found for user on {targetDate:yyyy-MM-dd}." });
+            }
+
+            var totalSummary = new
+            {
+                Date = targetDate.ToString("yyyy-MM-dd"),
+                TotalCalories = entries.Sum(e => e.Calories),
+                TotalProtein = entries.Sum(e => e.Protein),
+                TotalCarbs = entries.Sum(e => e.Carbs),
+                TotalFats = entries.Sum(e => e.Fats),
+                TotalFiber = entries.Sum(e => e.Fiber)
+            };
+
+            return Ok(totalSummary);
+        }
+
     }
 }

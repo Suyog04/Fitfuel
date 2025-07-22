@@ -13,11 +13,9 @@ namespace FitFuel.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure User entity
             modelBuilder.Entity<User>()
                 .HasKey(u => u.UserId);
 
-            // Configure CalorieEntry entity
             modelBuilder.Entity<CalorieEntry>()
                 .HasKey(e => e.EntryId);
 
@@ -31,15 +29,19 @@ namespace FitFuel.Data
                 .Property(e => e.Meal)
                 .HasConversion<string>();
 
-            // Configure StepEntry entity
             modelBuilder.Entity<StepEntry>()
                 .HasKey(e => e.Id);
 
             modelBuilder.Entity<StepEntry>()
                 .HasOne(e => e.User)
-                .WithMany() // No navigation list in User model for steps (optional)
+                .WithMany() // No navigation property for StepEntries on User
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Enforce storing Date as date-only (no time component) in PostgreSQL
+            modelBuilder.Entity<StepEntry>()
+                .Property(e => e.Date)
+                .HasColumnType("date");
         }
     }
 }
