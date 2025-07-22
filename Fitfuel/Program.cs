@@ -1,8 +1,8 @@
 using FitFuel.Data;
 using FitFuel.Services;
 using Microsoft.EntityFrameworkCore;
-using DotNetEnv; 
-
+using Microsoft.OpenApi.Models;
+using DotNetEnv;
 
 DotNetEnv.Env.Load();
 
@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// this add CORS policy
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -23,19 +23,37 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Add Controllers and HTTP clients
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<NutritionService>();
 
-// ✅ Register SendGrid email sender
+// Add SendGrid email sender
 builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
+
+// Add Swagger with metadata
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "FitFuel API",
+        Version = "v1",
+        Description = "API documentation for the FitFuel fitness tracking app"
+    });
+
+    // Optional: show enums as strings
+    c.UseInlineDefinitionsForEnums();
+});
 
 var app = builder.Build();
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "FitFuel API V1");
+    c.RoutePrefix = "swagger"; // so you visit /swagger
+});
 
 app.UseCors("AllowAll");
 
