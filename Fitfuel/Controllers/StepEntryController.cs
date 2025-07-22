@@ -17,10 +17,17 @@ namespace FitFuel.Controllers
             _context = context;
         }
 
-        // POST: api/StepEntry
+        /// <summary>
+        /// Adds or updates the step count for a specific user on a specific date.
+        /// </summary>
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddOrUpdateStep([FromBody] StepEntryRequest request)
         {
+            if (request.UserId == Guid.Empty || request.StepCount < 0)
+                return BadRequest(new { message = "Invalid input." });
+
             var date = request.Date.Date;
 
             var existing = await _context.StepEntries
@@ -47,8 +54,12 @@ namespace FitFuel.Controllers
             return Ok(new { message = "Step entry saved successfully." });
         }
 
-        // GET: api/StepEntry/user/{userId}?date=2025-07-21
+        /// <summary>
+        /// Gets the step count of a user for a specific date.
+        /// </summary>
         [HttpGet("user/{userId}")]
+        [ProducesResponseType(typeof(StepEntryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetStepsByDate(Guid userId, [FromQuery] DateTime? date = null)
         {
             var targetDate = date?.Date ?? DateTime.UtcNow.Date;
@@ -59,19 +70,23 @@ namespace FitFuel.Controllers
             if (entry == null)
                 return NotFound(new { message = $"No step entry found for {targetDate:yyyy-MM-dd}." });
 
-            var response = new StepEntryResponse
+            return Ok(new StepEntryResponse
             {
                 Date = entry.Date,
                 StepCount = entry.StepCount
-            };
-
-            return Ok(response);
+            });
         }
 
-        // GET: api/StepEntry/range/{userId}?start=2025-07-01&end=2025-07-10
+        /// <summary>
+        /// Gets step counts of a user in a date range.
+        /// </summary>
         [HttpGet("range/{userId}")]
+        [ProducesResponseType(typeof(List<StepEntryResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetStepsInRange(Guid userId, [FromQuery] DateTime start, [FromQuery] DateTime end)
         {
+            if (start > end)
+                return BadRequest(new { message = "Start date must be before end date." });
+
             var entries = await _context.StepEntries
                 .Where(e => e.UserId == userId && e.Date >= start.Date && e.Date <= end.Date)
                 .OrderBy(e => e.Date)
