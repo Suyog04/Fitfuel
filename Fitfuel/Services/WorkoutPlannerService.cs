@@ -17,25 +17,49 @@ namespace FitFuel.Services
         public WorkoutPlannerService(HttpClient httpClient, IOptions<WorkoutPlannerSettings> options)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            
-            // Optionally check if BaseAddress is set; if not, throw or log
+
             if (_httpClient.BaseAddress == null)
                 throw new ArgumentException("HttpClient.BaseAddress is not set. Check your configuration.");
         }
 
         public async Task<Dictionary<string, List<string>>?> GetWorkoutPlanAsync(WorkoutRequestDto request)
         {
-            // Post to relative endpoint path, for example "workout_planner"
-            var response = await _httpClient.PostAsJsonAsync("workout_planner", request);
+            try
+            {
+                var jsonRequest = JsonSerializer.Serialize(request);
+                Console.WriteLine($"Sending JSON to ML API: {jsonRequest}");
 
-            if (!response.IsSuccessStatusCode)
-                return null;
+                var response = await _httpClient.PostAsJsonAsync("workout_planner", request);
 
-            var jsonString = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"ML API error response ({(int)response.StatusCode}): {errorContent}");
+                    throw new Exception($"ML API returned error {(int)response.StatusCode} ({response.ReasonPhrase}): {errorContent}");
+                }
 
-            var workoutPlan = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(jsonString);
+                var jsonString = await response.Content.ReadAsStringAsync();
 
-            return workoutPlan;
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var workoutPlan = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(jsonString, options);
+
+                if (workoutPlan == null)
+                {
+                    throw new Exception("ML API returned null or invalid workout plan JSON.");
+                }
+
+                Console.WriteLine("Received workout plan from ML API successfully.");
+                return workoutPlan;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in calling ML API: {ex.Message}");
+                throw;
+            }
         }
     }
 }

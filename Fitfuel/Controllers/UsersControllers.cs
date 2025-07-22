@@ -88,21 +88,15 @@ namespace FitFuel.Controllers
             return Ok("Profile updated successfully");
         }
 
-        // PUT: api/Users/update-profile
-        [Authorize]
-        [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    
+        [HttpPut("{id}/update-profile")]
+        public async Task<IActionResult> UpdateProfile(Guid id, [FromBody] UpdateProfileRequest request)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null)
-                return Unauthorized();
-
-            var user = await _context.Users.FindAsync(Guid.Parse(userId));
+            var user = await _context.Users.FindAsync(id);
             if (user == null)
                 return NotFound("User not found.");
 
-            // Update fields if present
-            if (!string.IsNullOrWhiteSpace(request.Name)) user.Name = request.Name;
+            // Update fields if present (excluding Name)
             if (request.HeightCm.HasValue) user.HeightCm = request.HeightCm;
             if (request.WeightKg.HasValue) user.WeightKg = request.WeightKg;
             if (request.TargetWeightKg.HasValue) user.TargetWeightKg = request.TargetWeightKg;
@@ -115,7 +109,6 @@ namespace FitFuel.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Map user data to WorkoutRequestDto
             var workoutRequest = new WorkoutRequestDto
             {
                 Fitness_level = user.FitnessLevel ?? "Beginner",
@@ -128,17 +121,28 @@ namespace FitFuel.Controllers
                 Weight = user.WeightKg ?? 0
             };
 
-            var workoutPlan = await _workoutPlannerService.GetWorkoutPlanAsync(workoutRequest);
-
-            if (workoutPlan == null)
-                return StatusCode(500, "Failed to fetch workout plan from external service.");
-
-            return Ok(new
+            try
             {
-                message = "Profile updated and workout plan received.",
-                workoutPlan
-            });
+                var workoutPlan = await _workoutPlannerService.GetWorkoutPlanAsync(workoutRequest);
+
+                if (workoutPlan == null)
+                    return StatusCode(500, "Failed to fetch workout plan from external service.");
+
+                return Ok(new
+                {
+                    message = "Profile updated and workout plan received.",
+                    workoutPlan
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log ex.Message if you have logger, else just return error message
+                return StatusCode(500, $"Error calling ML API: {ex.Message}");
+            }
         }
+
+
+
 
         // GET: api/Users
         [HttpGet]
