@@ -3,6 +3,8 @@ using FitFuel.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using DotNetEnv;
+using FitFuel.Models;
+using Microsoft.Extensions.Options;
 
 DotNetEnv.Env.Load();
 
@@ -26,8 +28,24 @@ builder.Services.AddCors(options =>
 // Add Controllers and HTTP clients
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpClient();
+
+// Add HttpClient for NutritionService (typed client)
 builder.Services.AddHttpClient<NutritionService>();
+
+// Bind WorkoutPlannerSettings from config (you must add it to appsettings.json)
+builder.Services.Configure<WorkoutPlannerSettings>(builder.Configuration.GetSection("WorkoutPlanner"));
+
+// Add HttpClient for WorkoutPlannerService with base address from config
+builder.Services.AddHttpClient<WorkoutPlannerService>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<WorkoutPlannerSettings>>();
+    var baseUrl = options.Value.MlApiUrl;
+
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+    {
+        client.BaseAddress = new Uri(baseUrl);
+    }
+});
 
 // Add SendGrid email sender
 builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();

@@ -22,4 +22,13 @@ public class UpdateProfileRequest
 
     [Range(0, 150)]
     public int? Age { get; set; }  // optional
+
+    [StringLength(50)]
+    public string? FitnessLevel { get; set; }  // optional (e.g., Beginner, Intermediate, Advanced)
+
+    [Range(1, 7)]
+    public int? Availability { get; set; }  // optional, days per week
+
+    [StringLength(200)]
+    public string? Equipment { get; set; }  // optional, e.g., Dumbbells, Resistance Bands
 }
