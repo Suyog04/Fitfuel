@@ -111,14 +111,15 @@ namespace FitFuel.Controllers
 
             var workoutRequest = new WorkoutRequestDto
             {
-                Fitness_level = user.FitnessLevel ?? "Beginner",
+                FitnessLevel = user.FitnessLevel ?? "Beginner",
                 Goal = user.Goal ?? "",
                 Availability = user.Availability ?? 0,
-                Equipment_str = user.Equipment ?? "",
+                EquipmentStr = user.Equipment ?? "",
                 Age = user.Age ?? 0,
                 Gender = user.Gender ?? "",
                 Height = user.HeightCm ?? 0,
                 Weight = user.WeightKg ?? 0
+
             };
 
             try

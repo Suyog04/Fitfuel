@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using FitFuel.Models.DTOs;
 using System.Text.Json;
+using System.Text;
+using FitFuel.Models.DTOs;
+using FitFuel.Models;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace FitFuel.Controllers
 {
@@ -8,27 +12,61 @@ namespace FitFuel.Controllers
     [Route("api/[controller]")]
     public class WorkoutController : ControllerBase
     {
-        [HttpGet("workout-plan")]
-        public async Task<IActionResult> GetWorkoutPlan()
+        private readonly HttpClient _httpClient;
+
+        public WorkoutController()
         {
-            var httpClient = new HttpClient();
+            _httpClient = new HttpClient();
+        }
 
-            // Replace this with your actual ML service URL (local or remote)
-            var response = await httpClient.GetAsync("https://ec735a70df9f.ngrok-free.app/workout_planner");
+        [HttpPost("workout-plan")]
+        public async Task<IActionResult> GetWorkoutPlan([FromBody] WorkoutRequestDto request)
+        {
+            var postContent = new StringContent(
+                JsonSerializer.Serialize(request, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+                Encoding.UTF8,
+                "application/json"
+            );
 
-            if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, "Failed to fetch workout plan");
+            var postResponse = await _httpClient.PostAsync("https://599c40a67d7e.ngrok-free.app/workout_planner", postContent);
 
-            var jsonString = await response.Content.ReadAsStringAsync();
+            if (!postResponse.IsSuccessStatusCode)
+                return StatusCode((int)postResponse.StatusCode, "Failed to send data to ML server");
 
-            var workoutDict = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(jsonString);
+            var jsonString = await postResponse.Content.ReadAsStringAsync();
+
+            // Log raw JSON response for debugging
+            Console.WriteLine("ML server response JSON: " + jsonString);
+
+            // Deserialize response JSON into dictionary of workouts
+            var workoutDict = JsonSerializer.Deserialize<Dictionary<string, List<Exercise>>>(jsonString, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (workoutDict == null || workoutDict.Count == 0)
+            {
+                return Ok(new { message = "No workout plan available for the provided inputs." });
+            }
 
             var workoutResponse = new WorkoutPlanResponse
             {
-                WorkoutPlan = workoutDict ?? new Dictionary<string, List<string>>()
+                WorkoutPlan = workoutDict
             };
 
             return Ok(workoutResponse);
+        }
+
+        [HttpPost("test-post")]
+        public IActionResult TestPost()
+        {
+            return Ok("POST endpoint working");
+        }
+
+        [HttpGet]
+        public IActionResult TestGet()
+        {
+            return Ok("GET endpoint working");
         }
     }
 }

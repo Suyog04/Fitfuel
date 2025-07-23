@@ -8,8 +8,7 @@ public class UpdateProfileRequest
     public double? WeightKg { get; set; }
     public double? TargetWeightKg { get; set; }
     public string? Goal { get; set; }
-
-    // Change these from [Required] to optional
+    
     public string? FitnessLevel { get; set; }  // remove [Required]
     
     [Range(1, 7, ErrorMessage = "Availability must be between 1 and 7.")]

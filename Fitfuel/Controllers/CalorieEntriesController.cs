@@ -160,11 +160,6 @@ namespace FitFuel.Controllers
                 .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
                 .ToListAsync();
 
-            if (!entries.Any())
-            {
-                return NotFound(new { message = $"No calorie entries found for user on {targetDate:yyyy-MM-dd}." });
-            }
-
             var totalSummary = new
             {
                 Date = targetDate.ToString("yyyy-MM-dd"),
@@ -172,11 +167,15 @@ namespace FitFuel.Controllers
                 TotalProtein = entries.Sum(e => e.Protein),
                 TotalCarbs = entries.Sum(e => e.Carbs),
                 TotalFats = entries.Sum(e => e.Fats),
-                TotalFiber = entries.Sum(e => e.Fiber)
+                TotalFiber = entries.Sum(e => e.Fiber),
+                Message = entries.Any()
+                    ? "Calorie entries found for this date."
+                    : "No calorie entries found for this date."
             };
 
             return Ok(totalSummary);
         }
+
 
     }
 }
