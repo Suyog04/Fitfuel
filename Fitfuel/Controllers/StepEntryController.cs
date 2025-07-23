@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FitFuel.Controllers
@@ -123,6 +124,35 @@ namespace FitFuel.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while retrieving step entries in range.");
+                return StatusCode(500, new { message = "Internal Server Error" });
+            }
+        }
+
+        [HttpGet("last7days/{userId}")]
+        [ProducesResponseType(typeof(List<StepEntryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetStepsForLast7Days(Guid userId)
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+                var sevenDaysAgo = today.AddDays(-6);
+
+                var entries = await _context.StepEntries
+                    .Where(e => e.UserId == userId && e.Date >= sevenDaysAgo && e.Date <= today)
+                    .OrderBy(e => e.Date)
+                    .Select(e => new StepEntryResponse
+                    {
+                        Date = e.Date,
+                        StepCount = e.StepCount
+                    })
+                    .ToListAsync();
+
+                return Ok(entries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while retrieving last 7 days step entries.");
                 return StatusCode(500, new { message = "Internal Server Error" });
             }
         }
