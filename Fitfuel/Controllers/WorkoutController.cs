@@ -14,7 +14,7 @@ namespace FitFuel.Controllers
             var httpClient = new HttpClient();
 
             // Replace this with your actual ML service URL (local or remote)
-            var response = await httpClient.GetAsync("http://localhost:5001/api/ml/workout");
+            var response = await httpClient.GetAsync("https://ec735a70df9f.ngrok-free.app/workout_planner");
 
             if (!response.IsSuccessStatusCode)
                 return StatusCode((int)response.StatusCode, "Failed to fetch workout plan");
