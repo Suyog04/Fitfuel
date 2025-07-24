@@ -31,5 +31,8 @@ namespace FitFuel.Models.DTOs
 
         [JsonPropertyName("weight")]
         public double Weight { get; set; }
+
+        [JsonPropertyName("activity_level")]
+        public string ActivityLevel { get; set; } = "Moderate";
     }
 }

@@ -80,12 +80,8 @@ namespace FitFuel.Controllers
             user.TargetWeightKg = request.TargetWeightKg;
             user.Goal = request.Goal;
 
-            user.FitnessLevel = request.FitnessLevel;
-            user.Availability = request.Availability;
-            user.Equipment = request.Equipment;
-
             await _context.SaveChangesAsync();
-            return Ok("Profile updated successfully");
+            return Ok("Profile has been successfully completed");
         }
 
     
@@ -106,45 +102,18 @@ namespace FitFuel.Controllers
             if (!string.IsNullOrWhiteSpace(request.FitnessLevel)) user.FitnessLevel = request.FitnessLevel;
             if (request.Availability.HasValue) user.Availability = request.Availability;
             if (!string.IsNullOrWhiteSpace(request.Equipment)) user.Equipment = request.Equipment;
+            if (!string.IsNullOrWhiteSpace(request.ActivityLevel)) user.ActivityLevel = request.ActivityLevel;
 
             await _context.SaveChangesAsync();
 
-            var workoutRequest = new WorkoutRequestDto
+            return Ok(new
             {
-                FitnessLevel = user.FitnessLevel ?? "Beginner",
-                Goal = user.Goal ?? "",
-                Availability = user.Availability ?? 0,
-                EquipmentStr = user.Equipment ?? "",
-                Age = user.Age ?? 0,
-                Gender = user.Gender ?? "",
-                Height = user.HeightCm ?? 0,
-                Weight = user.WeightKg ?? 0
-
-            };
-
-            try
-            {
-                var workoutPlan = await _workoutPlannerService.GetWorkoutPlanAsync(workoutRequest);
-
-                if (workoutPlan == null)
-                    return StatusCode(500, "Failed to fetch workout plan from external service.");
-
-                return Ok(new
-                {
-                    message = "Profile updated and workout plan received.",
-                    workoutPlan
-                });
-            }
-            catch (Exception ex)
-            {
-                // Log ex.Message if you have logger, else just return error message
-                return StatusCode(500, $"Error calling ML API: {ex.Message}");
-            }
+                message = "Profile updated successfully."
+            });
         }
 
 
-
-
+        
         // GET: api/Users
         [HttpGet]
         public async Task<IActionResult> GetAll()

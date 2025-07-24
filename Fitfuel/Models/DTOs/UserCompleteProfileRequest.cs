@@ -21,13 +21,5 @@ public class UserCompleteProfileRequest
 
     [Required]
     public string Goal { get; set; } = string.Empty;
-
-    [Required]
-    public string FitnessLevel { get; set; } = string.Empty;  // e.g., Beginner, Intermediate, Advanced
-
-    [Required, Range(1, 7)]
-    public int Availability { get; set; }  // Number of workout days per week
-
-    [Required]
-    public string Equipment { get; set; } = string.Empty;  // e.g., Dumbbells, Resistance Bands, Bodyweight
+    
 }
