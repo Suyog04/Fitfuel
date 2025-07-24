@@ -1,78 +1,84 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using FitFuel.Data;
-using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
-using BCrypt.Net;
-using System.Threading.Tasks;
-using Fitfuel.Models.DTOs;
-using Microsoft.AspNetCore.Identity.Data;
-using FitFuel.Models.DTOs;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using ForgotPasswordRequest = FitFuel.Models.DTOs.ForgotPasswordRequest;
-using LoginRequest = FitFuel.Models.DTOs.LoginRequest;
-using RegisterRequest = FitFuel.Models.DTOs.RegisterRequest;
-using ResetPasswordRequest = FitFuel.Models.DTOs.ResetPasswordRequest;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using FitFuel.Data;
+using FitFuel.Models;
+using FitFuel.Models.DTOs;
+using Microsoft.IdentityModel.Tokens;
 
-namespace FitFuel.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace FitFuel.Controllers
 {
-    private readonly AppDbContext _context;
-    private readonly ILogger<AuthController> _logger;
-    private readonly IEmailSender _emailSender;
-
-    public AuthController(AppDbContext context, ILogger<AuthController> logger, IEmailSender emailSender)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthController : ControllerBase
     {
-        _context = context;
-        _logger = logger;
-        _emailSender = emailSender;
-    }
+        private readonly AppDbContext _context;
+        private readonly ILogger<AuthController> _logger;
+        private readonly IEmailSender _emailSender;
+        private readonly IConfiguration _configuration;
 
-    [HttpPost("register")]
-public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-{
-    if (!ModelState.IsValid)
-        return BadRequest(ModelState);
-
-    try
-    {
-        if (!IsPasswordStrong(request.Password))
+        public AuthController(
+            AppDbContext context,
+            ILogger<AuthController> logger,
+            IEmailSender emailSender,
+            IConfiguration configuration)
         {
-            return BadRequest("Password must be at least 8 characters with uppercase, lowercase, number, and special character");
+            _context = context;
+            _logger = logger;
+            _emailSender = emailSender;
+            _configuration = configuration;
         }
 
-        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        if (existingUser != null)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            return Conflict("A user with this email already exists.");
-        }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password, BCrypt.Net.BCrypt.GenerateSalt(12));
+            try
+            {
+                if (!IsPasswordStrong(request.Password))
+                {
+                    return BadRequest("Password must be at least 8 characters with uppercase, lowercase, number, and special character");
+                }
 
-        var user = new User
-        {
-            UserId = Guid.NewGuid(),
-            Name = request.Name,
-            Email = request.Email,
-            PasswordHash = hashedPassword,
-            CreatedAt = DateTime.UtcNow,
-            IsEmailVerified = false,
-            EmailVerificationToken = Guid.NewGuid().ToString()
-        };
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+                if (existingUser != null)
+                {
+                    return Conflict("A user with this email already exists.");
+                }
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password, BCrypt.Net.BCrypt.GenerateSalt(12));
 
-        // 🔍 Log before sending email
-        _logger.LogInformation("📤 Attempting to send verification email to {Email}", user.Email);
+                var user = new User
+                {
+                    UserId = Guid.NewGuid(),
+                    Name = request.Name,
+                    Email = request.Email,
+                    PasswordHash = hashedPassword,
+                    CreatedAt = DateTime.UtcNow,
+                    IsEmailVerified = false,
+                    EmailVerificationToken = Guid.NewGuid().ToString(),
+                    Role = "User"
+                };
 
-        var verificationUrl = $"{Request.Scheme}://{Request.Host}/api/auth/verify-email?token={user.EmailVerificationToken}";
-        var subject = "Verify your email for FitFuel";
-        var plainTextContent = $"Please verify your email by clicking this link: {verificationUrl}";
-        var htmlContent = $@"
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("📤 Attempting to send verification email to {Email}", user.Email);
+
+                var verificationUrl = $"{Request.Scheme}://{Request.Host}/api/auth/verify-email?token={user.EmailVerificationToken}";
+                var subject = "Verify your email for FitFuel";
+                var plainTextContent = $"Please verify your email by clicking this link: {verificationUrl}";
+                var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -142,50 +148,46 @@ public async Task<IActionResult> Register([FromBody] RegisterRequest request)
 </body>
 </html>";
 
+                await _emailSender.SendEmailAsync(user.Email, subject, plainTextContent, htmlContent);
 
-        await _emailSender.SendEmailAsync(user.Email, subject, plainTextContent, htmlContent);
+                _logger.LogInformation("✅ Verification email send completed for {Email}", user.Email);
 
-        // ✅ Log after email send
-        _logger.LogInformation("✅ Verification email send completed for {Email}", user.Email);
+                return Ok(new
+                {
+                    Message = "User registered successfully. Please verify your email before logging in.",
+                    UserId = user.UserId,
+                    Name = user.Name,
+                    Email = user.Email
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " Registration error for {Email}", request.Email);
+                return StatusCode(500, "Internal server error");
+            }
+        }
 
-        return Ok(new
+        [HttpGet("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromQuery] string token)
         {
-            Message = "User registered successfully. Please verify your email before logging in.",
-            UserId = user.UserId,
-            Name = user.Name,
-            Email = user.Email
-        });
-    }
-    catch (Exception ex)
-    {
-        //  Log exception if email fails
-        _logger.LogError(ex, " Registration error for {Email}", request.Email);
-        return StatusCode(500, "Internal server error");
-    }
-}
+            if (string.IsNullOrEmpty(token))
+                return BadRequest("Invalid token");
 
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
 
-    [HttpGet("verify-email")]
-public async Task<IActionResult> VerifyEmail([FromQuery] string token)
-{
-    if (string.IsNullOrEmpty(token))
-        return BadRequest("Invalid token");
+            if (user == null)
+                return NotFound("Invalid token or user not found");
 
-    var user = await _context.Users.FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+            if (user.IsEmailVerified)
+                return BadRequest("Email is already verified");
 
-    if (user == null)
-        return NotFound("Invalid token or user not found");
+            user.IsEmailVerified = true;
+            user.EmailVerificationToken = null;
 
-    if (user.IsEmailVerified)
-        return BadRequest("Email is already verified");
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
 
-    user.IsEmailVerified = true;
-    user.EmailVerificationToken = null;
-
-    _context.Users.Update(user);
-    await _context.SaveChangesAsync();
-
-    var html = @"
+            var html = @"
 <!DOCTYPE html>
 <html lang='en'>
 <head>
@@ -257,128 +259,143 @@ public async Task<IActionResult> VerifyEmail([FromQuery] string token)
 </body>
 </html>";
 
-    return Content(html, "text/html");
-}
+            return Content(html, "text/html");
+        }
 
-
-    
-    
-    // Login method, etc. (make sure to check IsEmailVerified on login)
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-
-        if (user == null)
-            return Unauthorized("Invalid email or password");
-
-        if (!user.IsEmailVerified)
-            return Unauthorized("Email not verified. Please verify your email before logging in.");
-
-        if (string.IsNullOrEmpty(user.PasswordHash))
-            return StatusCode(500, "Password hash not set for this user.");
-
-        if (!IsValidBCryptHash(user.PasswordHash))
-            return StatusCode(500, "Invalid password hash format");
-
-        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
-
-        if (!isPasswordValid)
-            return Unauthorized("Invalid email or password");
-
-        return Ok(new
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            Message = "Login successful",
-            UserId = user.UserId,
-            Name = user.Name,
-            Email = user.Email,
-            Token = GenerateJwtToken(user) // optional
-        });
-    }
-    
-    
-    [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        if (user == null)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            if (user == null)
+                return Unauthorized("Invalid email or password");
+
+            if (!user.IsEmailVerified)
+                return Unauthorized("Email not verified. Please verify your email before logging in.");
+
+            if (string.IsNullOrEmpty(user.PasswordHash))
+                return StatusCode(500, "Password hash not set for this user.");
+
+            if (!IsValidBCryptHash(user.PasswordHash))
+                return StatusCode(500, "Invalid password hash format");
+
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+
+            if (!isPasswordValid)
+                return Unauthorized("Invalid email or password");
+
+            return Ok(new
+            {
+                Message = "Login successful",
+                UserId = user.UserId,
+                Name = user.Name,
+                Email = user.Email,
+                Token = GenerateJwtToken(user)
+            });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null)
+                return Ok("If this email is registered, a reset link has been sent.");
+
+            user.PasswordResetToken = Guid.NewGuid().ToString();
+            user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+            await _context.SaveChangesAsync();
+
+            var resetLink = $"{Request.Scheme}://{Request.Host}/api/auth/reset-password?token={user.PasswordResetToken}";
+            await _emailSender.SendEmailAsync(user.Email, "Reset your FitFuel password",
+                $"Reset your password using this link: {resetLink}",
+                $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 1 hour.</p>");
+
             return Ok("If this email is registered, a reset link has been sent.");
-
-        user.PasswordResetToken = Guid.NewGuid().ToString();
-        user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1);
-        await _context.SaveChangesAsync();
-
-        var resetLink = $"{Request.Scheme}://{Request.Host}/api/auth/reset-password?token={user.PasswordResetToken}";
-        await _emailSender.SendEmailAsync(user.Email, "Reset your FitFuel password",
-            $"Reset your password using this link: {resetLink}",
-            $"<p>Click <a href='{resetLink}'>here</a> to reset your password. This link expires in 1 hour.</p>");
-
-        return Ok("If this email is registered, a reset link has been sent.");
-    }
-    [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var user = await _context.Users.FirstOrDefaultAsync(u =>
-            u.PasswordResetToken == request.Token &&
-            u.PasswordResetTokenExpiry > DateTime.UtcNow);
-
-        if (user == null)
-            return BadRequest("Invalid or expired token.");
-
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BCrypt.Net.BCrypt.GenerateSalt(12));
-        user.PasswordResetToken = null;
-        user.PasswordResetTokenExpiry = null;
-        await _context.SaveChangesAsync();
-
-        return Ok("Password has been reset successfully.");
-    }
-    
-    [HttpGet("test-send-email")]
-    public async Task<IActionResult> TestSendEmail()
-    {
-        try
-        {
-            var toEmail = "bistasuyog33@gmail.com"; // your email here
-            var subject = "Test Email from FitFuel";
-            var plainTextContent = "This is a test email sent to check SendGrid integration.";
-            var htmlContent = "<p>This is a <strong>test email</strong> sent to check SendGrid integration.</p>";
-
-            await _emailSender.SendEmailAsync(toEmail, subject, plainTextContent, htmlContent);
-            return Ok("Test email sent successfully.");
         }
-        catch (Exception ex)
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
-            _logger.LogError(ex, "Error sending test email");
-            return StatusCode(500, "Failed to send test email");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.PasswordResetToken == request.Token &&
+                u.PasswordResetTokenExpiry > DateTime.UtcNow);
+
+            if (user == null)
+                return BadRequest("Invalid or expired token.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword, BCrypt.Net.BCrypt.GenerateSalt(12));
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiry = null;
+            await _context.SaveChangesAsync();
+
+            return Ok("Password has been reset successfully.");
         }
-    }
 
-    
-    // Helper methods as before...
+        [HttpGet("test-send-email")]
+        public async Task<IActionResult> TestSendEmail()
+        {
+            try
+            {
+                var toEmail = "Fitfuel.befit@protonmail.com"; 
+                var subject = "Test Email from FitFuel";
+                var plainTextContent = "This is a test email sent to check SendGrid integration.";
+                var htmlContent = "<p>This is a <strong>test email</strong> sent to check SendGrid integration.</p>";
 
-    private bool IsValidBCryptHash(string hash)
-    {
-        return Regex.IsMatch(hash, @"^\$2[abxy]\$\d{2}\$.{53}$");
-    }
+                await _emailSender.SendEmailAsync(toEmail, subject, plainTextContent, htmlContent);
+                return Ok("Test email sent successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending test email");
+                return StatusCode(500, "Failed to send test email");
+            }
+        }
 
-    private bool IsPasswordStrong(string password)
-    {
-        return Regex.IsMatch(password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$");
-    }
+        // Helper methods
 
-    private string GenerateJwtToken(User user)
-    {
-        return $"JWT-TOKEN-FOR-{user.UserId}";
+        private bool IsValidBCryptHash(string hash)
+        {
+            return Regex.IsMatch(hash, @"^\$2[abxy]\$\d{2}\$.{53}$");
+        }
+
+        private bool IsPasswordStrong(string password)
+        {
+            return Regex.IsMatch(password, @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$");
+        }
+
+        private string GenerateJwtToken(User user)
+        {
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+
+                // Add role claim here:
+                new Claim(ClaimTypes.Role, user.Role ?? "User") // Default role "User" if null
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(12),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
     }
 }
-
-

@@ -22,6 +22,8 @@ public class User
     public string? Equipment { get; set; }        // Comma-separated list
     public string? ActivityLevel { get; set; }    // Sedentary / Light / Moderate / Active / Very Active
 
+    public string Role { get; set; } = "User";   // <--- Default role is User
+
     public bool IsEmailVerified { get; set; } = false;
     public string? EmailVerificationToken { get; set; }
     public string? PasswordResetToken { get; set; }
