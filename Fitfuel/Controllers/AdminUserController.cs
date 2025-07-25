@@ -21,7 +21,7 @@ namespace FitFuel.Controllers
             _emailSender = emailSender;
         }
 
-        // GET: admin/users
+       
         [HttpGet]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -29,7 +29,7 @@ namespace FitFuel.Controllers
             return Ok(users);
         }
 
-        // GET: admin/users/{id}
+        
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUserById(Guid id)
         {
@@ -46,8 +46,7 @@ namespace FitFuel.Controllers
         {
             if (string.IsNullOrEmpty(request.Password))
                 return BadRequest("Password is required.");
-
-            // Hash the password
+            
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             var user = new User
@@ -74,8 +73,7 @@ namespace FitFuel.Controllers
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
-            // Build verification URL for the email
+            
             var verificationUrl = $"{Request.Scheme}://{Request.Host}/api/auth/verify-email?token={user.EmailVerificationToken}";
 
             // Send verification email - you need an email sender service injected (like _emailSender)
@@ -88,38 +86,39 @@ namespace FitFuel.Controllers
         }
 
         
-        // PUT: admin/users/{id}
+        
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User updatedUser)
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserRequest request)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null)
                 return NotFound("User not found.");
 
-            // Update other profile fields
-            user.Name = updatedUser.Name;
-            user.HeightCm = updatedUser.HeightCm;
-            user.WeightKg = updatedUser.WeightKg;
-            user.TargetWeightKg = updatedUser.TargetWeightKg;
-            user.Age = updatedUser.Age;
-            user.Gender = updatedUser.Gender;
-            user.Goal = updatedUser.Goal;
-            user.FitnessLevel = updatedUser.FitnessLevel;
-            user.Availability = updatedUser.Availability;
-            user.Equipment = updatedUser.Equipment;
-            user.ActivityLevel = updatedUser.ActivityLevel;
+       
+            user.Name = request.Name;
+            user.HeightCm = request.HeightCm;
+            user.WeightKg = request.WeightKg;
+            user.TargetWeightKg = request.TargetWeightKg;
+            user.Age = request.Age;
+            user.Gender = request.Gender;
+            user.Goal = request.Goal;
+            user.FitnessLevel = request.FitnessLevel;
+            user.Availability = request.Availability;
+            user.Equipment = request.Equipment;
+            user.ActivityLevel = request.ActivityLevel;
 
-            // Check if email changed (case-insensitive)
-            if (!string.Equals(user.Email, updatedUser.Email, StringComparison.OrdinalIgnoreCase))
+            // Trim and compare emails (case-insensitive)
+            var oldEmail = user.Email?.Trim() ?? "";
+            var newEmail = request.Email?.Trim() ?? "";
+
+            if (!string.Equals(oldEmail, newEmail, StringComparison.OrdinalIgnoreCase))
             {
-                user.Email = updatedUser.Email;
+                user.Email = newEmail;
                 user.IsEmailVerified = false;
                 user.EmailVerificationToken = Guid.NewGuid().ToString();
 
-                // Build verification URL
                 var verificationUrl = $"{Request.Scheme}://{Request.Host}/api/auth/verify-email?token={user.EmailVerificationToken}";
 
-                // Send verification email
                 await _emailSender.SendEmailAsync(
                     user.Email,
                     "Verify your new email for FitFuel",
@@ -127,13 +126,16 @@ namespace FitFuel.Controllers
                     $"<p>Please verify your new email by clicking <a href='{verificationUrl}'>here</a>.</p>"
                 );
             }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "User updated successfully. If you changed your email, please verify it via the email sent." });
         }
 
 
-        // DELETE: admin/users/{id}
+
+
+        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {

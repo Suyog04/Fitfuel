@@ -179,5 +179,24 @@ namespace FitFuel.Controllers
 
             return Ok(response);
         }
+        // GET: api/users/{id}/fitness-profile
+        [HttpGet("{id}/fitness-profile")]
+        public async Task<IActionResult> GetFitnessProfile(Guid id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null)
+                return NotFound(new { message = "User not found." });
+
+            var profile = new FitnessProfileResponse
+            {
+                FitnessLevel = user.FitnessLevel,
+                Availability = user.Availability,
+                Equipment = user.Equipment,
+                ActivityLevel = user.ActivityLevel
+            };
+
+            return Ok(profile);
+        }
+
     }
 }

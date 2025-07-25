@@ -150,7 +150,7 @@ namespace FitFuel.Controllers
 
                 await _emailSender.SendEmailAsync(user.Email, subject, plainTextContent, htmlContent);
 
-                _logger.LogInformation("✅ Verification email send completed for {Email}", user.Email);
+                _logger.LogInformation("Verification email send completed for {Email}", user.Email);
 
                 return Ok(new
                 {
@@ -360,6 +360,32 @@ namespace FitFuel.Controllers
             }
         }
 
+        // New Logout Endpoint (No JWT Auth, userId passed explicitly)
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var user = await _context.Users.FindAsync(request.UserId);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                user.LastLogoutAt = DateTime.UtcNow;
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "User logged out successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during logout");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         // Helper methods
 
         private bool IsValidBCryptHash(string hash)
@@ -396,6 +422,5 @@ namespace FitFuel.Controllers
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
     }
 }

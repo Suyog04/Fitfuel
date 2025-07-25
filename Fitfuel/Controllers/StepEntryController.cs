@@ -70,8 +70,8 @@ namespace FitFuel.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        [ProducesResponseType(typeof(StepEntryResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetStepsByDate(Guid userId, [FromQuery] DateTime? date = null)
         {
@@ -83,7 +83,14 @@ namespace FitFuel.Controllers
                     .FirstOrDefaultAsync(e => e.UserId == userId && e.Date == targetDate);
 
                 if (entry == null)
-                    return NotFound(new { message = $"No step entry found for {targetDate:yyyy-MM-dd}." });
+                {
+                    return Ok(new
+                    {
+                        message = $"No step entry found for {targetDate:yyyy-MM-dd}.",
+                        hasEntry = false,
+                        date = targetDate
+                    });
+                }
 
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
                 if (user == null || user.WeightKg == null || user.WeightKg <= 0)
@@ -97,9 +104,9 @@ namespace FitFuel.Controllers
 
                 _logger.LogInformation($"Calories calculated: {totalCaloriesBurnt}");
 
-                // Return anonymous object with calories included, bypassing DTO
                 return Ok(new
                 {
+                    hasEntry = true,
                     date = entry.Date,
                     stepCount = entry.StepCount,
                     stepCaloriesBurnt = Math.Round(totalCaloriesBurnt, 2)
@@ -111,6 +118,7 @@ namespace FitFuel.Controllers
                 return StatusCode(500, new { message = "Internal Server Error" });
             }
         }
+
 
 
 
@@ -148,25 +156,36 @@ namespace FitFuel.Controllers
 
         [HttpGet("last7days/{userId}")]
         [ProducesResponseType(typeof(List<StepEntryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetStepsForLast7Days(Guid userId)
         {
             try
             {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+                if (user == null || user.WeightKg == null || user.WeightKg <= 0)
+                    return BadRequest(new { message = "User weight is not available or invalid." });
+
+                double weight = user.WeightKg.Value;
+                double basalCalPerStep = 0.05;
+                double calPerStep = basalCalPerStep * (weight / 70.0);
+
                 var today = DateTime.UtcNow.Date;
                 var sevenDaysAgo = today.AddDays(-6);
 
                 var entries = await _context.StepEntries
                     .Where(e => e.UserId == userId && e.Date >= sevenDaysAgo && e.Date <= today)
                     .OrderBy(e => e.Date)
-                    .Select(e => new StepEntryResponse
-                    {
-                        Date = e.Date,
-                        StepCount = e.StepCount
-                    })
                     .ToListAsync();
 
-                return Ok(entries);
+                var response = entries.Select(e => new StepEntryResponse
+                {
+                    Date = e.Date,
+                    StepCount = e.StepCount,
+                    StepCaloriesBurnt = Math.Round(e.StepCount * calPerStep, 2)
+                }).ToList();
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -174,5 +193,6 @@ namespace FitFuel.Controllers
                 return StatusCode(500, new { message = "Internal Server Error" });
             }
         }
+
     }
 }

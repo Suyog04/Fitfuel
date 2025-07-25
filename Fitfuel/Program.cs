@@ -13,17 +13,17 @@ DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load DB context (PostgreSQL)
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Controllers
+
 builder.Services.AddControllers();
 
-// Enable endpoint explorer
+
 builder.Services.AddEndpointsApiExplorer();
 
-// Enable Swagger docs
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -34,8 +34,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     c.UseInlineDefinitionsForEnums();
-
-    // Optionally: Add JWT Authentication to Swagger UI
+    
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
@@ -60,28 +59,31 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Enable CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.AllowAnyOrigin()    // ⚠️ Use only for dev. Use .WithOrigins("http://localhost:53925") for Flutter web dev
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+                "https://ada93a08cb4d.ngrok-free.app",
+                "https://fitfuelapi.loca.lt",
+                "http://localhost:3000"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
-// Register HttpClient for NutritionService
+
 builder.Services.AddHttpClient<NutritionService>();
 
-// Register IHttpClientFactory for general use
+
 builder.Services.AddHttpClient();
 
-// Bind WorkoutPlannerSettings
+
 builder.Services.Configure<WorkoutPlannerSettings>(
     builder.Configuration.GetSection("WorkoutPlanner"));
 
-// Register WorkoutPlannerService with custom base URL
+
 builder.Services.AddHttpClient<WorkoutPlannerService>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<WorkoutPlannerSettings>>();
@@ -93,10 +95,8 @@ builder.Services.AddHttpClient<WorkoutPlannerService>((serviceProvider, client) 
     }
 });
 
-// Register SendGrid email sender
 builder.Services.AddScoped<IEmailSender, SendGridEmailSender>();
 
-// ===== Add JWT Authentication =====
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -104,17 +104,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuer = true,
             ValidateAudience = true,
+            ValidateLifetime = true, 
+            ClockSkew = TimeSpan.Zero, 
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is missing")))
         };
     });
 
 var app = builder.Build();
 
-// Enable Swagger
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -122,19 +124,14 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-// ✅ Use CORS before anything that uses endpoints
-app.UseCors("AllowAll");
 
-// ===== Add Authentication middleware =====
-app.UseAuthentication();  // Must come before UseAuthorization
+app.UseCors("AllowSpecificOrigins");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Optional: add HTTPS redirection (recommended in production)
+
 // app.UseHttpsRedirection();
 
-// Map controllers
 app.MapControllers();
-
-// Run the application
 app.Run();

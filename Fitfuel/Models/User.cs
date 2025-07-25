@@ -28,6 +28,8 @@ public class User
     public string? EmailVerificationToken { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetTokenExpiry { get; set; }
+    
+    public DateTime? LastLogoutAt { get; set; }
 
     public virtual ICollection<CalorieEntry> CalorieEntries { get; set; } = new List<CalorieEntry>();
 }

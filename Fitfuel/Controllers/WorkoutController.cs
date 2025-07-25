@@ -33,26 +33,45 @@ namespace FitFuel.Controllers
             if (user == null)
                 return NotFound("User not found.");
 
+            // Check for required profile fields
+            if (string.IsNullOrEmpty(user.FitnessLevel) ||
+                string.IsNullOrEmpty(user.Goal) ||
+                user.Availability == null ||
+                string.IsNullOrEmpty(user.Equipment) ||
+                user.Age == null ||
+                string.IsNullOrEmpty(user.Gender) ||
+                user.HeightCm == null ||
+                user.WeightKg == null ||
+                string.IsNullOrEmpty(user.ActivityLevel))
+            {
+                return StatusCode(202, new
+                {
+                    message = "User profile is incomplete. Please update your profile to generate a workout plan."
+                });
+            }
+
             var workoutRequest = new WorkoutRequestDto
             {
-                FitnessLevel = user.FitnessLevel ?? "Beginner",
-                Goal = user.Goal ?? "",
-                Availability = user.Availability ?? 0,
-                EquipmentStr = user.Equipment ?? "",
-                Age = user.Age ?? 0,
-                Gender = user.Gender ?? "",
-                Height = user.HeightCm ?? 0,
-                Weight = user.WeightKg ?? 0,
-                ActivityLevel = user.ActivityLevel ?? "Moderate"
+                FitnessLevel = user.FitnessLevel,
+                Goal = user.Goal,
+                Availability = user.Availability.Value,
+                EquipmentStr = user.Equipment,
+                Age = user.Age.Value,
+                Gender = user.Gender,
+                Height = user.HeightCm.Value,
+                Weight = user.WeightKg.Value,
+                ActivityLevel = user.ActivityLevel
             };
 
             var postContent = new StringContent(
-                JsonSerializer.Serialize(workoutRequest, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+                JsonSerializer.Serialize(workoutRequest,
+                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
                 Encoding.UTF8,
                 "application/json"
             );
 
-            var postResponse = await _httpClient.PostAsync("https://luckily-helped-bison.ngrok-free.app/workout_planner", postContent);
+            var postResponse =
+                await _httpClient.PostAsync("https://luckily-helped-bison.ngrok-free.app/workout_planner", postContent);
 
             if (!postResponse.IsSuccessStatusCode)
                 return StatusCode((int)postResponse.StatusCode, "Failed to send data to ML server");
@@ -60,10 +79,11 @@ namespace FitFuel.Controllers
             var jsonString = await postResponse.Content.ReadAsStringAsync();
             Console.WriteLine("ML server response JSON: " + jsonString);
 
-            var workoutDict = JsonSerializer.Deserialize<Dictionary<string, List<Exercise>>>(jsonString, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var workoutDict = JsonSerializer.Deserialize<Dictionary<string, List<Exercise>>>(jsonString,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
             if (workoutDict == null || workoutDict.Count == 0)
                 return Ok(new { message = "No workout plan available for the provided inputs." });
@@ -76,7 +96,7 @@ namespace FitFuel.Controllers
             return Ok(workoutResponse);
         }
 
-// Define this request DTO for receiving userId
+        
         public class UserIdRequest
         {
             public Guid UserId { get; set; }
