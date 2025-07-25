@@ -3,6 +3,7 @@ using System;
 using FitFuel.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Fitfuel.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250725185635_AddHeartRateBodyTempDurationToPredictedCalories")]
+    partial class AddHeartRateBodyTempDurationToPredictedCalories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -88,37 +91,6 @@ namespace Fitfuel.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("StepEntries");
-                });
-
-            modelBuilder.Entity("PredictedCalorie", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<double>("BodyTemp")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<double>("Duration")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("HeartRate")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("PredictedCalories")
-                        .HasColumnType("double precision");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PredictedCalories");
                 });
 
             modelBuilder.Entity("User", b =>
@@ -208,17 +180,6 @@ namespace Fitfuel.Migrations
                 });
 
             modelBuilder.Entity("FitFuel.Models.StepEntry", b =>
-                {
-                    b.HasOne("User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("PredictedCalorie", b =>
                 {
                     b.HasOne("User", "User")
                         .WithMany()

@@ -9,7 +9,7 @@ namespace FitFuel.Controllers
 {
     [ApiController]
     [Route("admin/users")]
-   // [Authorize(Roles = "Admin")]  // Only allow users with Admin role
+    //[Authorize(Roles = "Admin")]  // Only allow users with Admin role
     public class AdminUserController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -13,16 +13,12 @@ DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
 builder.Services.AddControllers();
 
-
 builder.Services.AddEndpointsApiExplorer();
-
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -34,7 +30,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 
     c.UseInlineDefinitionsForEnums();
-    
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
@@ -43,6 +39,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -69,20 +66,17 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();  // <-- Important: allow credentials for cookies!
     });
 });
 
-
 builder.Services.AddHttpClient<NutritionService>();
-
 
 builder.Services.AddHttpClient();
 
-
 builder.Services.Configure<WorkoutPlannerSettings>(
     builder.Configuration.GetSection("WorkoutPlanner"));
-
 
 builder.Services.AddHttpClient<WorkoutPlannerService>((serviceProvider, client) =>
 {
@@ -104,18 +98,33 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidateLifetime = true, 
-            ClockSkew = TimeSpan.Zero, 
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key is missing")))
         };
+
+        // Read JWT token from cookie if Authorization header is missing
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token))
+                {
+                    if (context.Request.Cookies.ContainsKey("jwt"))
+                    {
+                        context.Token = context.Request.Cookies["jwt"];
+                    }
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
-
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -124,12 +133,10 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-
 app.UseCors("AllowSpecificOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 
 // app.UseHttpsRedirection();
 

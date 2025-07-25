@@ -10,6 +10,7 @@ namespace FitFuel.Data
         public DbSet<User> Users { get; set; }
         public DbSet<CalorieEntry> CalorieEntries { get; set; }
         public DbSet<StepEntry> StepEntries { get; set; }
+        public DbSet<PredictedCalorie> PredictedCalories { get; set; }  
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +42,20 @@ namespace FitFuel.Data
             // Enforce storing Date as date-only (no time component) in PostgreSQL
             modelBuilder.Entity<StepEntry>()
                 .Property(e => e.Date)
+                .HasColumnType("date");
+
+            // PredictedCalorie entity configuration
+            modelBuilder.Entity<PredictedCalorie>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<PredictedCalorie>()
+                .HasOne(p => p.User)
+                .WithMany() 
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PredictedCalorie>()
+                .Property(p => p.Date)
                 .HasColumnType("date");
         }
     }

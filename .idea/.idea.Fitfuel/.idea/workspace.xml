@@ -8,7 +8,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="163b3f18-2895-4cdd-a633-5c27e461aed6" name="Changes" comment="" />
+    <list default="true" id="163b3f18-2895-4cdd-a633-5c27e461aed6" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Fitfuel/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Fitfuel/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -22,50 +24,55 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Suyog04"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Suyog04&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Suyog04/Fitfuel.git",
-    "accountId": "00348977-27d7-4ab3-b26d-a9f51fdcf893"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Suyog04/Fitfuel.git&quot;,
+    &quot;accountId&quot;: &quot;00348977-27d7-4ab3-b26d-a9f51fdcf893&quot;
   }
-}]]></component>
+}</component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Controllers/CalorieEntriesController.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Controllers/CalorieEntriesController.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Controllers/CalorieEntriesController.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Controllers/CalorieEntriesController.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Program.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/Program.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///Users/macantosh/RiderProjects/Fitfuel/Fitfuel/bin/Debug/net9.0/appsettings.json" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 2
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="2y5gXnT0VfA0osrYIxqZB9tHWJJ" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "git-widget-placeholder": "Merging main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;.NET Launch Settings Profile.Fitfuel: http.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected=".NET Launch Settings Profile.Fitfuel: http">
     <configuration name="Fitfuel: http" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
       <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/Fitfuel/Fitfuel.csproj" />
@@ -119,7 +126,10 @@
       <method v="2" />
     </configuration>
     <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
-      <deployment type="dockerfile" />
+      <deployment type="dockerfile">
+        <settings />
+      </deployment>
+      <EXTENSION ID="com.jetbrains.rider.docker.debug" isFastModeEnabled="true" isSslEnabled="false" />
       <method v="2" />
     </configuration>
   </component>
@@ -132,6 +142,7 @@
       <option name="presentableId" value="Default" />
       <updated>1749129891071</updated>
       <workItem from="1749129892303" duration="69552000" />
+      <workItem from="1753168475269" duration="76083000" />
     </task>
     <task id="LOCAL-00001" summary="Commit">
       <option name="closed" value="true" />

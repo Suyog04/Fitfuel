@@ -13,6 +13,7 @@ using FitFuel.Data;
 using FitFuel.Models;
 using FitFuel.Models.DTOs;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Http; // For CookieOptions
 
 namespace FitFuel.Controllers
 {
@@ -287,13 +288,36 @@ namespace FitFuel.Controllers
             if (!isPasswordValid)
                 return Unauthorized("Invalid email or password");
 
+            var token = GenerateJwtToken(user);
+
+            // Issue JWT as secure HttpOnly cookie for Admins only
+            if (user.Role == "Admin")
+            {
+                Response.Cookies.Append("jwt", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true, // Set to true in production (HTTPS)
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddHours(12)
+                });
+
+                return Ok(new
+                {
+                    Message = "Admin login successful",
+                    UserId = user.UserId,
+                    Name = user.Name,
+                    Email = user.Email
+                });
+            }
+
+            // For other users, return JWT token in response body
             return Ok(new
             {
                 Message = "Login successful",
                 UserId = user.UserId,
                 Name = user.Name,
                 Email = user.Email,
-                Token = GenerateJwtToken(user)
+                Token = token
             });
         }
 
@@ -345,7 +369,7 @@ namespace FitFuel.Controllers
         {
             try
             {
-                var toEmail = "Fitfuel.befit@protonmail.com"; 
+                var toEmail = "Fitfuel.befit@protonmail.com";
                 var subject = "Test Email from FitFuel";
                 var plainTextContent = "This is a test email sent to check SendGrid integration.";
                 var htmlContent = "<p>This is a <strong>test email</strong> sent to check SendGrid integration.</p>";
@@ -360,31 +384,7 @@ namespace FitFuel.Controllers
             }
         }
 
-        // New Logout Endpoint (No JWT Auth, userId passed explicitly)
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            try
-            {
-                var user = await _context.Users.FindAsync(request.UserId);
-                if (user == null)
-                    return NotFound("User not found.");
-
-                user.LastLogoutAt = DateTime.UtcNow;
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { Message = "User logged out successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during logout");
-                return StatusCode(500, "Internal server error");
-            }
-        }
+        
 
         // Helper methods
 
@@ -405,9 +405,7 @@ namespace FitFuel.Controllers
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-
-                // Add role claim here:
-                new Claim(ClaimTypes.Role, user.Role ?? "User") // Default role "User" if null
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));

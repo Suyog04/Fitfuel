@@ -17,19 +17,17 @@ public class User
     public string? Goal { get; set; }
 
     // Workout-specific fields
-    public string? FitnessLevel { get; set; }     // Beginner / Intermediate / Advanced
-    public int? Availability { get; set; }        // Days per week available
-    public string? Equipment { get; set; }        // Comma-separated list
-    public string? ActivityLevel { get; set; }    // Sedentary / Light / Moderate / Active / Very Active
+    public string? FitnessLevel { get; set; }     
+    public int? Availability { get; set; }        
+    public string? Equipment { get; set; }       
+    public string? ActivityLevel { get; set; }    
 
-    public string Role { get; set; } = "User";   // <--- Default role is User
+    public string Role { get; set; } = "User";   
 
     public bool IsEmailVerified { get; set; } = false;
     public string? EmailVerificationToken { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTime? PasswordResetTokenExpiry { get; set; }
     
-    public DateTime? LastLogoutAt { get; set; }
-
     public virtual ICollection<CalorieEntry> CalorieEntries { get; set; } = new List<CalorieEntry>();
 }

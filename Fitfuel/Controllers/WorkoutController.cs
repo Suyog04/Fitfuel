@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using FitFuel.Data;
 using FitFuel.Models;
@@ -26,6 +27,11 @@ namespace FitFuel.Controllers
             _httpClient = httpClientFactory.CreateClient();
         }
 
+        public class UserIdRequest
+        {
+            public Guid UserId { get; set; }
+        }
+
         [HttpPost("workout-plan")]
         public async Task<IActionResult> GetWorkoutPlan([FromBody] UserIdRequest request)
         {
@@ -33,7 +39,6 @@ namespace FitFuel.Controllers
             if (user == null)
                 return NotFound("User not found.");
 
-            // Check for required profile fields
             if (string.IsNullOrEmpty(user.FitnessLevel) ||
                 string.IsNullOrEmpty(user.Goal) ||
                 user.Availability == null ||
@@ -96,12 +101,6 @@ namespace FitFuel.Controllers
             return Ok(workoutResponse);
         }
 
-        
-        public class UserIdRequest
-        {
-            public Guid UserId { get; set; }
-        }
-
         [HttpPost("predict-calories")]
         public async Task<IActionResult> PredictCalories([FromBody] CalorieEstimationRequest request)
         {
@@ -147,10 +146,50 @@ namespace FitFuel.Controllers
             if (prediction == null)
                 return StatusCode(500, "Invalid response from ML server");
 
+            var entry = new PredictedCalorie
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.UserId,
+                Date = DateTime.UtcNow.Date,
+                Duration = request.Duration,
+                HeartRate = request.HeartRate,
+                BodyTemp = request.BodyTemp,
+                PredictedCalories = prediction.Predicted_Calories
+            };
+
+            _context.PredictedCalories.Add(entry);
+            await _context.SaveChangesAsync();
+
             return Ok(prediction);
         }
 
+        [HttpGet("predicted-calories")]
+        public async Task<IActionResult> GetPredictedCaloriesByDate([FromQuery] Guid userId, [FromQuery] DateTime date)
+        {
+            var entry = await _context.PredictedCalories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.UserId == userId &&
+                    p.Date.Date == date.Date);
 
+            if (entry == null)
+            {
+                return Ok(new
+                {
+                    message = "No predicted calorie data found for this user on the specified date."
+                });
+            }
+
+            return Ok(new
+            {
+                entry.UserId,
+                entry.Date,
+                entry.Duration,
+                entry.HeartRate,
+                entry.BodyTemp,
+                entry.PredictedCalories
+            });
+        }
 
         [HttpPost("test-post")]
         public IActionResult TestPost() => Ok("POST endpoint working");
