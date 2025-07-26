@@ -38,34 +38,28 @@ namespace FitFuel.Controllers
             var user = await _context.Users.FindAsync(request.UserId);
             if (user == null)
                 return NotFound("User not found.");
-
-            if (string.IsNullOrEmpty(user.FitnessLevel) ||
-                string.IsNullOrEmpty(user.Goal) ||
-                user.Availability == null ||
-                string.IsNullOrEmpty(user.Equipment) ||
-                user.Age == null ||
-                string.IsNullOrEmpty(user.Gender) ||
-                user.HeightCm == null ||
-                user.WeightKg == null ||
-                string.IsNullOrEmpty(user.ActivityLevel))
-            {
-                return StatusCode(202, new
-                {
-                    message = "User profile is incomplete. Please update your profile to generate a workout plan."
-                });
-            }
+            
+            string fitnessLevel = string.IsNullOrEmpty(user.FitnessLevel) ? "Beginner" : user.FitnessLevel;
+            string goal = string.IsNullOrEmpty(user.Goal) ? "Fat Loss" : user.Goal;
+            int availability = user.Availability ?? 3;
+            string equipment = string.IsNullOrEmpty(user.Equipment) ? "Bodyweight" : user.Equipment;
+            int age = user.Age ?? 25;
+            string gender = string.IsNullOrEmpty(user.Gender) ? "Male" : user.Gender;
+            double height = user.HeightCm ?? 170.0;
+            double weight = user.WeightKg ?? 65.0;
+            string activityLevel = string.IsNullOrEmpty(user.ActivityLevel) ? "Moderate" : user.ActivityLevel;
 
             var workoutRequest = new WorkoutRequestDto
             {
-                FitnessLevel = user.FitnessLevel,
-                Goal = user.Goal,
-                Availability = user.Availability.Value,
-                EquipmentStr = user.Equipment,
-                Age = user.Age.Value,
-                Gender = user.Gender,
-                Height = user.HeightCm.Value,
-                Weight = user.WeightKg.Value,
-                ActivityLevel = user.ActivityLevel
+                FitnessLevel = fitnessLevel,
+                Goal = goal,
+                Availability = availability,
+                EquipmentStr = equipment,
+                Age = age,
+                Gender = gender,
+                Height = height,
+                Weight = weight,
+                ActivityLevel = activityLevel
             };
 
             var postContent = new StringContent(
@@ -100,6 +94,7 @@ namespace FitFuel.Controllers
 
             return Ok(workoutResponse);
         }
+
 
         [HttpPost("predict-calories")]
         public async Task<IActionResult> PredictCalories([FromBody] CalorieEstimationRequest request)
@@ -164,13 +159,17 @@ namespace FitFuel.Controllers
         }
 
         [HttpGet("predicted-calories")]
-        public async Task<IActionResult> GetPredictedCaloriesByDate([FromQuery] Guid userId, [FromQuery] DateTime date)
+        public async Task<IActionResult> GetPredictedCaloriesByDate(
+            [FromQuery] Guid userId,
+            [FromQuery(Name = "date")] DateTime? date = null)
         {
+            var targetDate = DateTime.SpecifyKind(date?.Date ?? DateTime.UtcNow.Date, DateTimeKind.Utc);
+
             var entry = await _context.PredictedCalories
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p =>
                     p.UserId == userId &&
-                    p.Date.Date == date.Date);
+                    p.Date == targetDate);
 
             if (entry == null)
             {
@@ -190,6 +189,7 @@ namespace FitFuel.Controllers
                 entry.PredictedCalories
             });
         }
+
 
         [HttpPost("test-post")]
         public IActionResult TestPost() => Ok("POST endpoint working");

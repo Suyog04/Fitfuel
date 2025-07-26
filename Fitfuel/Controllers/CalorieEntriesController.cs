@@ -176,7 +176,9 @@ namespace FitFuel.Controllers
             return Ok(totalSummary);
         }
         [HttpGet("macro-breakdown/{userId}")]
-        public async Task<IActionResult> GetMacroBreakdown(Guid userId, [FromQuery] DateTime? date = null)
+        public async Task<IActionResult> GetMacroBreakdown(
+            Guid userId,
+            [FromQuery(Name = "date")] DateTime? date = null)
         {
             var rawDate = date?.Date ?? DateTime.UtcNow.Date;
             var targetDate = DateTime.SpecifyKind(rawDate, DateTimeKind.Utc);
@@ -187,22 +189,10 @@ namespace FitFuel.Controllers
                 .Where(e => e.UserId == userId && e.EntryTime >= startDate && e.EntryTime < endDate)
                 .ToListAsync();
 
-            if (!entries.Any())
-            {
-                return NotFound(new { message = $"No calorie entries found for user on {targetDate:yyyy-MM-dd}." });
-            }
-
             var totalCarbs = entries.Sum(e => e.Carbs);
             var totalProtein = entries.Sum(e => e.Protein);
             var totalFats = entries.Sum(e => e.Fats);
-
-            // ✅ FIX: Recalculate total calories from macros only
             var totalCalories = (totalCarbs * 4) + (totalProtein * 4) + (totalFats * 9);
-
-            if (totalCalories == 0)
-            {
-                return Ok(new List<MacroBreakdownDto>());
-            }
 
             var breakdown = new List<MacroBreakdownDto>
             {
@@ -211,21 +201,21 @@ namespace FitFuel.Controllers
                     MacroType = "Carbs",
                     Grams = totalCarbs,
                     Calories = totalCarbs * 4,
-                    PercentageOfTotalCalories = Math.Round((totalCarbs * 4 / totalCalories) * 100, 1)
+                    PercentageOfTotalCalories = totalCalories > 0 ? Math.Round((totalCarbs * 4 / totalCalories) * 100, 1) : 0
                 },
                 new MacroBreakdownDto
                 {
                     MacroType = "Protein",
                     Grams = totalProtein,
                     Calories = totalProtein * 4,
-                    PercentageOfTotalCalories = Math.Round((totalProtein * 4 / totalCalories) * 100, 1)
+                    PercentageOfTotalCalories = totalCalories > 0 ? Math.Round((totalProtein * 4 / totalCalories) * 100, 1) : 0
                 },
                 new MacroBreakdownDto
                 {
                     MacroType = "Fat",
                     Grams = totalFats,
                     Calories = totalFats * 9,
-                    PercentageOfTotalCalories = Math.Round((totalFats * 9 / totalCalories) * 100, 1)
+                    PercentageOfTotalCalories = totalCalories > 0 ? Math.Round((totalFats * 9 / totalCalories) * 100, 1) : 0
                 }
             };
 

@@ -44,6 +44,7 @@ namespace FitFuel.Controllers
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password, 12),
                 CreatedAt = DateTime.UtcNow
+                // Other properties (Age, Gender, etc.) can be set later
             };
 
             _context.Users.Add(newUser);
@@ -52,18 +53,19 @@ namespace FitFuel.Controllers
             return CreatedAtAction(nameof(GetById), new { id = newUser.UserId }, new UserResponse
             {
                 UserId = newUser.UserId,
-                Name = newUser.Name,
-                Email = newUser.Email,
+                Name = newUser.Name ?? "",
+                Email = newUser.Email ?? "",
                 CreatedAt = newUser.CreatedAt,
-                Age = newUser.Age,
-                Gender = newUser.Gender,
-                HeightCm = newUser.HeightCm,
-                WeightKg = newUser.WeightKg,
-                TargetWeightKg = newUser.TargetWeightKg,
-                Goal = newUser.Goal,
-                CalorieEntries = new()
+                Age = newUser.Age ?? 0,
+                Gender = newUser.Gender ?? "",
+                HeightCm = newUser.HeightCm ?? 0,
+                WeightKg = newUser.WeightKg ?? 0,
+                TargetWeightKg = newUser.TargetWeightKg ?? 0,
+                Goal = newUser.Goal ?? "",
+                CalorieEntries = new List<CalorieEntryResponse>()
             });
         }
+
 
         // PUT: api/Users/{id}/complete-profile
         [HttpPut("{id}/complete-profile")]
@@ -122,16 +124,16 @@ namespace FitFuel.Controllers
                 .Select(u => new UserResponse
                 {
                     UserId = u.UserId,
-                    Name = u.Name,
-                    Email = u.Email,
+                    Name = u.Name ?? "",
+                    Email = u.Email ?? "",
                     CreatedAt = u.CreatedAt,
-                    Age = u.Age,
-                    Gender = u.Gender,
-                    HeightCm = u.HeightCm,
-                    WeightKg = u.WeightKg,
-                    TargetWeightKg = u.TargetWeightKg,
-                    Goal = u.Goal,
-                    CalorieEntries = new()
+                    Age = u.Age ?? 0,
+                    Gender = u.Gender ?? "",
+                    HeightCm = u.HeightCm ?? 0,
+                    WeightKg = u.WeightKg ?? 0,
+                    TargetWeightKg = u.TargetWeightKg ?? 0,
+                    Goal = u.Goal ?? "",
+                    CalorieEntries = new List<CalorieEntryResponse>()
                 })
                 .ToListAsync();
 
@@ -152,20 +154,20 @@ namespace FitFuel.Controllers
             var response = new UserResponse
             {
                 UserId = user.UserId,
-                Name = user.Name,
-                Email = user.Email,
+                Name = user.Name ?? "",
+                Email = user.Email ?? "",
                 CreatedAt = user.CreatedAt,
-                Age = user.Age,
-                Gender = user.Gender,
-                HeightCm = user.HeightCm,
-                WeightKg = user.WeightKg,
-                TargetWeightKg = user.TargetWeightKg,
-                Goal = user.Goal,
+                Age = user.Age ?? 0,
+                Gender = user.Gender ?? "",
+                HeightCm = user.HeightCm ?? 0,
+                WeightKg = user.WeightKg ?? 0,
+                TargetWeightKg = user.TargetWeightKg ?? 0,
+                Goal = user.Goal ?? "",
                 CalorieEntries = user.CalorieEntries
                     .Select(e => new CalorieEntryResponse
                     {
                         EntryId = e.EntryId,
-                        FoodItem = e.FoodItem,
+                        FoodItem = e.FoodItem ?? "",
                         WeightInGrams = e.WeightInGrams,
                         Meal = e.Meal,
                         EntryTime = e.EntryTime,
@@ -179,24 +181,28 @@ namespace FitFuel.Controllers
 
             return Ok(response);
         }
-        // GET: api/users/{id}/fitness-profile
+
+        
         [HttpGet("{id}/fitness-profile")]
-        public async Task<IActionResult> GetFitnessProfile(Guid id)
+        public async Task<IActionResult> GetFitnessProfile(
+            Guid id,
+            [FromQuery] DateTime? date = null)  // Optional date parameter with default
         {
+            var targetDate = DateTime.SpecifyKind(date?.Date ?? DateTime.UtcNow.Date, DateTimeKind.Utc);
+
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
             if (user == null)
                 return NotFound(new { message = "User not found." });
-
+    
             var profile = new FitnessProfileResponse
             {
-                FitnessLevel = user.FitnessLevel,
-                Availability = user.Availability,
-                Equipment = user.Equipment,
-                ActivityLevel = user.ActivityLevel
+                FitnessLevel = user.FitnessLevel ?? "",
+                Availability = user.Availability ?? 0,
+                Equipment = user.Equipment ?? "",
+                ActivityLevel = user.ActivityLevel ?? ""
             };
 
             return Ok(profile);
         }
-
     }
 }

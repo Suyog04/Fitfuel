@@ -156,17 +156,16 @@ namespace FitFuel.Controllers
 
         [HttpGet("last7days/{userId}")]
         [ProducesResponseType(typeof(List<StepEntryResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetStepsForLast7Days(Guid userId)
         {
             try
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
-                if (user == null || user.WeightKg == null || user.WeightKg <= 0)
-                    return BadRequest(new { message = "User weight is not available or invalid." });
 
-                double weight = user.WeightKg.Value;
+                // Default weight used if missing or invalid
+                double weight = (user?.WeightKg != null && user.WeightKg > 0) ? user.WeightKg.Value : 70.0;
+
                 double basalCalPerStep = 0.05;
                 double calPerStep = basalCalPerStep * (weight / 70.0);
 
@@ -193,6 +192,7 @@ namespace FitFuel.Controllers
                 return StatusCode(500, new { message = "Internal Server Error" });
             }
         }
+
 
     }
 }
